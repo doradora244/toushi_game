@@ -9,7 +9,10 @@ from actions import ACTIONS, get_action, get_available_actions
 from code_runner import run_player_code
 from code_inspector import analyze_code, calculate_tech_debt
 from missions import get_mission
-from streamlit_ace import st_ace
+try:
+    from streamlit_ace import st_ace
+except ImportError:
+    st_ace = None
 
 # ============================================================
 # ページ設定
