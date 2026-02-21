@@ -204,13 +204,24 @@ with right_col:
             st.markdown(f"**Step {i+1}**")
             st.markdown(hint)
 
+from streamlit_ace import st_ace
+
     # 統合コードエディタ
     st.write("**✏️ 会社の経営システム（全体コード）:**")
-    user_code = st.text_area(
-        label="company_logic.py",
-        key=f"code_editor_{game.current_turn}",
+    user_code = st_ace(
         value=game.company.current_code,
-        height=400
+        language="python",
+        theme="monokai",
+        key=f"code_editor_{game.current_turn}",
+        font_size=16,
+        tab_size=4,
+        show_gutter=True,
+        show_print_margin=False,
+        wrap=True,
+        auto_update=True,
+        min_lines=20,
+        keybinding="vscode",
+        placeholder="ここにコードを書いてください...",
     )
 
     if st.button("🚀 経営システムを更新（実行）", type="primary", use_container_width=True):
