@@ -13,6 +13,7 @@ try:
     from streamlit_ace import st_ace
 except ImportError:
     st_ace = None
+from save_manager import save_game, load_game, delete_save
 
 # ============================================================
 # ページ設定
@@ -88,12 +89,17 @@ def show_financial_history(history):
 # ============================================================
 def init_session():
     if "game" not in st.session_state:
-        if "company_name" not in st.session_state:
-            st.session_state.company_name = "スタートアップ株式会社"
-        st.session_state.game = Game(st.session_state.company_name)
-
-    if "game_started" not in st.session_state:
-        st.session_state.game_started = False
+        # まずはセーブデータを探す
+        saved_game = load_game()
+        if saved_game:
+            st.session_state.game = saved_game
+            st.session_state.game_started = True
+            st.session_state.company_name = saved_game.company.name
+        else:
+            if "company_name" not in st.session_state:
+                st.session_state.company_name = "スタートアップ株式会社"
+            st.session_state.game = Game(st.session_state.company_name)
+            st.session_state.game_started = False
 
     if "screen" not in st.session_state:
         st.session_state.screen = "main"
@@ -108,6 +114,7 @@ def init_session():
         st.session_state.attempt_count = 0
 
     if "last_settlement" not in st.session_state:
+        st.session_state.last_settlement = None
         st.session_state.last_settlement = None
 
 # ============================================================
@@ -129,8 +136,28 @@ if not st.session_state.game_started:
         st.session_state.company_name = name
         st.session_state.game = Game(name)
         st.session_state.game_started = True
+        save_game(st.session_state.game) # 保存
         st.rerun()
     st.stop()
+
+# サイドバーに過去のミッションを表示
+with st.sidebar:
+    st.write("## 📝 経営の歩み")
+    st.info("これまでの学びを振り返りましょう。")
+    # 第1ターンから現在のターンまで表示
+    for t in range(1, game.current_turn + 1):
+        m = get_mission(t)
+        with st.expander(f"Turn {t}: {m['title']}"):
+            st.write(m['description'])
+            st.write(f"**目標:** {m['goal']}")
+            for hint in m['hints']:
+                st.markdown(hint)
+    
+    st.write("---")
+    if st.button("🔄 タイトルに戻る", help="セーブデータを消去して最初からやり直します"):
+        delete_save()
+        for key in list(st.session_state.keys()): del st.session_state[key]
+        st.rerun()
 
 show_status_cards(game)
 st.progress(min(1.0, (game.current_turn - 1) / game.max_turns), text=f"ターン {game.current_turn} / {game.max_turns}")
@@ -148,6 +175,7 @@ with left_col:
         st.success("🎉 全ターン終了！")
         st.metric("最終予算", f"¥{int(game.company.budget):,}")
         if st.button("🔄 もう一度プレイ"):
+            delete_save() # セーブ消去
             for key in list(st.session_state.keys()): del st.session_state[key]
             st.rerun()
 
@@ -173,6 +201,7 @@ with left_col:
 
         if st.button("⏭ 決算フェーズへ", use_container_width=True, type="primary"):
             result = game.do_settlement()
+            save_game(game) # セーブ
             st.session_state.last_settlement = result
             st.session_state.screen = "result"
             st.rerun()
@@ -259,6 +288,7 @@ with right_col:
                 "debt_change":   debt_change
             }
             game.actions_done_this_turn += 1
+            save_game(game) # セーブ
             st.session_state.action_result = {"success": True, "output": output, "error": None, "reward": reward}
         else:
             st.session_state.action_result = {"success": False, "output": output, "error": error, "reward": None}
