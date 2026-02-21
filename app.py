@@ -7,6 +7,7 @@ import pandas as pd
 from game import Game
 from actions import ACTIONS, get_action, get_available_actions
 from code_runner import run_player_code
+from code_inspector import analyze_code, calculate_tech_debt
 
 # ============================================================
 # ページ設定
@@ -213,7 +214,6 @@ with right_col:
     )
 
     if st.button("🚀 経営システムを更新（実行）", type="primary", use_container_width=True):
-        from code_inspector import analyze_code, calculate_tech_debt
         before = game.company.get_summary()
         before_debt = game.company.tech_debt
         
