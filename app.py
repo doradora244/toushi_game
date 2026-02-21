@@ -209,21 +209,30 @@ with right_col:
 
     # 統合コードエディタ
     st.write("**✏️ 会社の経営システム（全体コード）:**")
-    user_code = st_ace(
-        value=game.company.current_code,
-        language="python",
-        theme="monokai",
-        key=f"code_editor_{game.current_turn}",
-        font_size=16,
-        tab_size=4,
-        show_gutter=True,
-        show_print_margin=False,
-        wrap=True,
-        auto_update=True,
-        min_lines=20,
-        keybinding="vscode",
-        placeholder="ここにコードを書いてください...",
-    )
+    if st_ace:
+        user_code = st_ace(
+            value=game.company.current_code,
+            language="python",
+            theme="monokai",
+            key=f"code_editor_{game.current_turn}",
+            font_size=16,
+            tab_size=4,
+            show_gutter=True,
+            show_print_margin=False,
+            wrap=True,
+            auto_update=True,
+            min_lines=20,
+            keybinding="vscode",
+            placeholder="ここにコードを書いてください...",
+        )
+    else:
+        st.warning("⚠️ 高機能エディタ(streamlit-ace)がロードできませんでした。標準エディタを使用します。")
+        user_code = st.text_area(
+            label="company_logic.py",
+            key=f"code_editor_{game.current_turn}",
+            value=game.company.current_code,
+            height=400
+        )
 
     if st.button("🚀 経営システムを更新（実行）", type="primary", use_container_width=True):
         before = game.company.get_summary()
