@@ -44,6 +44,8 @@ def analyze_code(code_str):
         "line_count":     len([l for l in code_str.strip().split("\n") if l.strip()]),
         "function_names": [],
         "class_names":    [],
+        "has_with":       False,
+        "has_json":       False,
     }
 
     try:
@@ -81,6 +83,17 @@ def analyze_code(code_str):
 
         elif isinstance(node, ast.Return):
             info["has_return"] = True
+
+        elif isinstance(node, ast.With):
+            info["has_with"] = True
+
+        # json.load / json.dump などの呼び出しを確認
+        elif isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Attribute):
+                if isinstance(node.func.value, ast.Name) and node.func.value.id == "json":
+                    info["has_json"] = True
+            elif isinstance(node.func, ast.Name) and node.func.id == "open":
+                info["has_with"] = True # with を使わなくても open() ならフラグを立てる
 
     return info
 
@@ -192,6 +205,23 @@ def calculate_reward(code_info, action_id):
         if ic > 0:
             bug_red += 3 * ic
             detected.append(f"条件分岐 {ic}個 → バグ率 -{3*ic}")
+
+    # ----------------------------------------------------------
+    # データ永続化: ファイル操作
+    # ----------------------------------------------------------
+    elif action_id == "save_load_data":
+        if not code_info["has_with"]:
+            return None
+        
+        quality += 10
+        bug_red += 5
+        users   += 20
+        detected.append("ファイル操作 (open/with) → 品質 +10 / バグ率 -5 / ユーザー +20")
+
+        if code_info["has_json"]:
+            quality += 10
+            users   += 20
+            detected.append("JSON 形式の利用 → 品質 +10 / ユーザー +20")
 
     # 何も検出されなかった
     if quality == 0 and bug_red == 0 and users == 0:

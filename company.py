@@ -9,151 +9,103 @@
 # ============================================================
 
 
+from product import Product
+
 class Company:
     """
     プレイヤーが経営する会社を表すクラスです。
-
-    属性（attribute）:
-        name       : 会社名
-        users      : ユーザー数（製品を使っている人数）
-        quality    : 品質スコア（0〜100）
-        bug_rate   : バグ率（0〜100）
-        price      : 製品の価格
-        revenue    : 売上（決算後に更新）
-        cost       : コスト（決算後に更新）
-        profit     : 利益（決算後に更新）
-        stock_price: 株価
     """
 
-    def __init__(self):
-        """
-        会社の初期値を設定するメソッドです。
-
-        【__init__ とは？】
-        クラスからオブジェクトを作るときに自動で呼ばれる特別なメソッドです。
-        「コンストラクタ」とも呼ばれます。
-        company = Company() と書いた瞬間、ここが実行されます。
-
-        【self とは？】
-        「このオブジェクト自身」を指す変数です。
-        self.users = 50 は「この会社のusers変数に50を入れる」という意味です。
-        """
+    def __init__(self, name="スタートアップ株式会社"):
         # --- 会社の基本情報 ---
-        self.name = "スタートアップ株式会社"  # 会社名（文字列 = str型）
+        self.name = name
+        self.budget = 100000.0  # 軍資金（初期10万円）
+        self.products = []      # 開発した製品のリスト
+        self.stock_price = 1000 # 株価
 
-        # --- ゲームのステータス（初期値） ---
-        # これらが会社の「体力」です。コードを書くと改善されます。
-        self.users = 50        # ユーザー数（整数 = int型）
-        self.quality = 50      # 品質スコア（0〜100）高いほど良い
-        self.bug_rate = 20     # バグ率（0〜100）低いほど良い
-        self.price = 100       # 製品の価格（円）
+        # 財務履歴（今ターンの結果用）
+        self.revenue = 0.0
+        self.cost = 0.0
+        self.profit = 0.0
 
-        # --- 財務データ（決算時に計算して更新される） ---
-        # 最初は0。do_settlement() が呼ばれると更新される。
-        self.revenue = 0.0     # 売上（浮動小数点 = float型）
-        self.cost = 0.0        # コスト
-        self.profit = 0.0      # 利益 = 売上 - コスト
+    def develop_product(self, name, cost, price, initial_stock=10):
+        """
+        新製品を開発し、初期在庫を製造します。
+        コスト = 原価 * 初期在庫
+        """
+        total_cost = cost * initial_stock
+        if self.budget < total_cost:
+            print(f"❌ 予算不足です！開発コスト: ¥{total_cost:,.0f} / 現在の予算: ¥{self.budget:,.0f}")
+            return False
 
-        # --- 株価 ---
-        self.stock_price = 1000  # 自社の株価（円）
+        new_product = Product(name, cost, price, initial_stock)
+        self.products.append(new_product)
+        self.budget -= total_cost
+        print(f"✅ 新製品 '{name}' を開発しました！ (コスト: ¥{total_cost:,.0f})")
+        return True
+
+    def restock(self, product_name, amount):
+        """
+        既存製品の在庫を増やします。
+        """
+        product = next((p for p in self.products if p.name == product_name), None)
+        if not product:
+            print(f"❌ 製品 '{product_name}' が見当たりません。")
+            return False
+
+        total_cost = product.cost * amount
+        if self.budget < total_cost:
+            print(f"❌ 予算不足です！増産コスト: ¥{total_cost:,.0f} / 現在の予算: ¥{self.budget:,.0f}")
+            return False
+
+        product.stock += amount
+        self.budget -= total_cost
+        print(f"📦 '{product_name}' を {amount} 個増産しました。 (コスト: ¥{total_cost:,.0f})")
+        return True
 
     def calculate_financials(self):
         """
-        決算計算を行います。
-        売上・コスト・利益を計算して、自分自身の属性を更新します。
-
-        【計算式の説明】
-        売上 = ユーザー数 × 価格 × (品質 / 100)
-            → 品質100なら全額、品質50なら半額相当になる仕組みです
-
-        コスト = 固定費(1000) + バグ対応費(バグ率 × 20)
-            → バグが多いと修正コストが増えるイメージです
-
-        利益 = 売上 - コスト
-
-        【return とは？】
-        メソッドが呼ばれた場所に値を「返す」ための書き方です。
-        p = company.calculate_financials() で利益を受け取れます。
+        製品の販売処理を行い、利益を計算します。
+        ※ このメソッドは Game.do_settlement から呼ばれます。
         """
-        try:
-            # 売上の計算
-            # quality / 100 で「0.0〜1.0」の係数を作っています
-            # 例: quality=50 → 0.5 → 売上は最大の半分
-            self.revenue = self.users * self.price * (self.quality / 100)
+        import random
+        self.revenue = 0.0
+        self.cost = 0.0 # 今ターンの追加コスト（固定費など）
+        
+        # 固定費
+        fixed_cost = 2000 
+        self.cost += fixed_cost
 
-            # コストの計算
-            # バグが多い = 修正作業が増える = コスト増
-            self.cost = 1000 + self.bug_rate * 20
+        for p in self.products:
+            # 販売数の決定：基本は在庫の 20% 〜 60% が売れる（認知度などで変動）
+            # 価格が原価に近ければより売れやすく、高すぎると売れにくい
+            price_factor = max(0.1, 2.0 - (p.price / p.cost)) 
+            target_sales = int(p.stock * random.uniform(0.1, 0.4) * price_factor * p.brand_power)
+            actual_sales = min(p.stock, target_sales)
 
-            # 利益の計算
-            self.profit = self.revenue - self.cost
+            # 売上計上
+            sale_amount = actual_sales * p.price
+            self.revenue += sale_amount
+            
+            # 在庫と販売実績の更新
+            p.stock -= actual_sales
+            p.total_sold += actual_sales
+            
+            # 売れるほど認知度が少し上がる
+            p.brand_power += actual_sales * 0.01
 
-        except Exception as e:
-            # 予期しないエラーが起きた場合のフォールバック
-            print(f"[エラー] calculate_financials: {e}")
-            self.profit = 0.0
-
+        self.profit = self.revenue - self.cost
+        self.budget += self.profit
+        
         return self.profit
 
-    def apply_challenge_success(self):
-        """
-        コーディングチャレンジ成功時の報酬を適用します。
-
-        【min / max とは？】
-        min(a, b) → aとbの小さい方を返す → 上限を設けるのに使います
-        max(a, b) → aとbの大きい方を返す → 下限を設けるのに使います
-
-        例: min(100, 55 + 5) → min(100, 60) → 60（100を超えない）
-            max(0, 20 - 3)   → max(0, 17)   → 17（0を下回らない）
-        """
-        self.quality   = min(100, self.quality + 5)   # 品質 +5（上限100）
-        self.bug_rate  = max(0,   self.bug_rate - 3)  # バグ率 -3（下限0）
-        self.users     = self.users + 10              # ユーザー数 +10
-
-    def apply_challenge_failure(self):
-        """
-        コーディングチャレンジ失敗時のペナルティを適用します。
-        バグを埋め込んでしまったイメージです。
-        """
-        self.bug_rate = min(100, self.bug_rate + 2)  # バグ率 +2（上限100）
-
-    def apply_action_reward(self, reward):
-        """
-        アクション報酬を適用します。
-
-        引数:
-            reward (dict | None):
-                {"quality": int, "bug_reduction": int, "users": int}
-                None の場合は何もしない
-
-        【.get() とは？】
-        辞書から値を取り出すメソッドです。
-        reward.get("quality", 0) は
-        "quality" キーがあればその値を、なければ 0 を返します。
-        """
-        if not reward:
-            return
-        self.quality   = min(100, self.quality  + reward.get("quality", 0))
-        self.bug_rate  = max(0,   self.bug_rate - reward.get("bug_reduction", 0))
-        self.users    += reward.get("users", 0)
-
     def get_summary(self):
-        """
-        会社の現在の状態を辞書（dict）で返します。
-
-        【辞書（dict）とは？】
-        {"キー": 値} の形でデータを管理するデータ型です。
-        summary["ユーザー数"] のようにキーで値を取り出せます。
-        表示や集計に使いやすい形にまとめる目的で使っています。
-        """
         return {
             "会社名":     self.name,
-            "ユーザー数": self.users,
-            "品質":       self.quality,
-            "バグ率":     self.bug_rate,
-            "製品価格":   self.price,
-            "売上":       self.revenue,
-            "コスト":     self.cost,
+            "予算":       self.budget,
+            "製品数":     len(self.products),
+            "総在庫数":   sum(p.stock for p in self.products),
+            "累計販売数": sum(p.total_sold for p in self.products),
             "利益":       self.profit,
             "株価":       self.stock_price,
         }

@@ -16,34 +16,40 @@ import io
 import contextlib
 
 
-def run_player_code(code_str):
+def run_player_code(code_str, company=None):
     """
     プレイヤーが書いたコードを実行します。
 
     引数:
         code_str (str): 実行するPythonコードの文字列
+        company (Company): 操作対象の会社オブジェクト
 
     戻り値:
         tuple: (output, error)
             output (str): print() などで出力された内容
             error  (str | None): エラーメッセージ（正常終了なら None）
-
-    使い方:
-        output, error = run_player_code("print(1 + 1)")
-        # output → "2\\n"
-        # error  → None
     """
     # StringIO は「文字列をファイルのように扱える」バッファです
     buf = io.StringIO()
 
     # exec() に渡す実行環境（グローバル変数の辞書）
-    # 空の辞書を渡すことで、前のコード実行の変数が混入しないようにします
-    namespace = {}
+    # company オブジェクトを渡すことで、コード内から self 抜きで操作可能にします
+    namespace = {
+        "company": company,
+        "print": print, # 標準の print を使えるようにする
+    }
+    
+    # 便利関数の追加（ユーザーが company.quality += 10 と書かなくても済むように）
+    if company:
+        namespace["status"] = company.get_summary()
+
     error = None
 
     try:
         # redirect_stdout(buf) で print() の出力を buf に向ける
+        # 実際の print はバッファに書き込まれる
         with contextlib.redirect_stdout(buf):
+            # compile して実行。特定の変数（namespace）内で実行される
             exec(compile(code_str, "<player_code>", "exec"), namespace)
 
     except SyntaxError as e:
