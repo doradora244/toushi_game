@@ -70,7 +70,7 @@ class Company:
     def calculate_financials(self):
         """決算処理: 販売とコスト計算"""
         revenue = 0.0
-        mfg_cost = 0.0
+        mfg_cost = 0.0  # 会計上の売上原価
         
         for p in self.products:
             # 需要計算（簡易）
@@ -83,16 +83,30 @@ class Company:
             revenue += sales_volume * p.price
             mfg_cost += sales_volume * p.cost
             
-        # 固定費と負債コスト
+        # 営業費用（固定費と負債コスト）
         base_fixed_cost = 5000 
         debt_cost = self.tech_debt * 500 # 負債 1pt = 500円
+        op_cost = base_fixed_cost + debt_cost
         
-        total_cost = mfg_cost + base_fixed_cost + debt_cost
-        profit = revenue - total_cost
+        # 会計上の利益（原価も考慮）
+        total_accounting_cost = mfg_cost + op_cost
+        profit = revenue - total_accounting_cost
         
-        self.budget += profit
+        # 予算（現預金）の更新
+        # ※ mfg_costは仕入れ時に既に支払済みなので、ここでは引かない
+        cash_flow = revenue - op_cost
+        self.budget += cash_flow
+        
+        # ログ出力（ユーザーが納得できるように）
+        print(f"--- 決算報告 ---")
+        print(f"💰 売上高: ¥{int(revenue):,}")
+        print(f"🏢 営業費用: ¥{int(op_cost):,} (固定費: ¥{base_fixed_cost:,}, 負債コスト: ¥{int(debt_cost):,})")
+        print(f"📉 売上原価: ¥{int(mfg_cost):,} (※仕入れ時に支払済)")
+        print(f"✨ 今期純利益: ¥{int(profit):,}")
+        print(f"💳 予算変動: ¥{int(cash_flow):,}")
+        
         self.revenue = revenue
-        self.cost = total_cost
+        self.cost = total_accounting_cost
         self.profit = profit
         
         return profit
