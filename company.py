@@ -34,7 +34,13 @@ class Company:
         )
 
     def develop_product(self, name, cost, price, initial_stock=10):
-        """新製品を開発します"""
+        """新製品を開発します（同名の製品が既にある場合は開発しません）"""
+        # 重複チェック
+        for p in self.products:
+            if p.name == name:
+                print(f"⚠️ 製品 '{name}' は既に存在します。新しい開発は不要です。")
+                return False
+
         total_cost = cost * initial_stock
         if self.budget >= total_cost:
             self.budget -= total_cost
