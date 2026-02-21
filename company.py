@@ -12,13 +12,13 @@ class Company:
     def __init__(self, name="スタートアップ株式会社"):
         # --- 会社の基本情報 ---
         self.name = name
-        self.budget = 100000.0  # 軍資金
+        self.budget = 150000.0  # 軍資金（余裕を持たせて15万）
         self.products = []      # 開発した製品のリスト
         self.stock_price = 1000 # 株価
         self.tech_debt = 0.0    # 技術負債ポイント
 
         # --- 継続コードベース ---
-        # プレイヤーが育てていく「会社の脳」となるコードです
+        # プレイヤーが一から書き上げていく経営システムです
         self.current_code = self._get_initial_code()
 
         # 財務履歴（今ターンの結果用）
@@ -27,24 +27,10 @@ class Company:
         self.profit = 0.0
 
     def _get_initial_code(self):
-        """ゲーム開始時の初期経営ロジックを返します"""
+        """経営ロジックを一から書き始めるための初期状態を返します"""
         return (
-            "# ==========================================\n"
-            "# 🏢 経営戦略コードベース\n"
-            "# ==========================================\n"
-            "# このコードがあなたの会社の「自動経営システム」です。\n"
-            "# 毎ターン、このコードが実行されて経営判断が行われます。\n\n"
-            "def auto_management():\n"
-            "    # 初期設定: まだ製品がない場合は開発します\n"
-            "    if len(company.products) == 0:\n"
-            "        company.develop_product('プロトタイプA', 1000, 5000, 20)\n"
-            "    \n"
-            "    # 在庫管理: 在庫が少なくなったら補充します\n"
-            "    for p in company.products:\n"
-            "        if p.stock < 5:\n"
-                "            company.restock(p.name, 10)\n\n"
-            "# 経営システムを起動\n"
-            "auto_management()\n"
+            "# ここに Python コードを書いて会社の経営システムを作りましょう！\n"
+            "# ヒント：まずは製品を開発するコード(develop_product)から始めましょう。\n\n"
         )
 
     def develop_product(self, name, cost, price, initial_stock=10):

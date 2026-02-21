@@ -185,6 +185,18 @@ with right_col:
         st.write(f"**目標:** {mission['goal']}")
         st.caption(f"📍 注力エリア: {mission['target_area']}")
 
+    # クイックリファレンス
+    with st.expander("📚 経営コマンド早見表"):
+        st.markdown("""
+        - `company.develop_product(名前, 原価, 価格, 個数)` : 新製品を作る
+        - `company.restock(製品名, 個数)` : 在庫を補充する
+        - `for p in company.products:` : すべての製品を調べる
+        ---
+        **💎 高評価（インセンティブ）を得るコツ:**
+        - 関数(`def`)で処理を分けると、システムが安定します。
+        - クラス(`class`)を活用すると、運営コスト(固定費)が大幅に削減されます！
+        """)
+
     # ヒント表示（3段階）
     with st.expander("💡 開発のヒントを見る"):
         for i, hint in enumerate(mission['hints']):
@@ -239,24 +251,54 @@ with right_col:
             st.toast("システムを初期化しました")
             st.rerun()
 
-    # 実行結果
+    # 実行結果パネル
     if st.session_state.action_result:
         res = st.session_state.action_result
         if res["error"]:
             st.error(f"❌ システムにエラーがあります：\n{res['error']}")
             st.info("💡 ヒント: インデント（半角スペース）が崩れていないか確認してください。")
         else:
+            code_info = analyze_code(user_code)
+            
+            # --- インセンティブ・詳細パネル ---
             st.success("✅ 経営システムが正常に更新されました！")
-            if res["output"]: st.code(res["output"])
             
-            cols = st.columns(3)
-            cols[0].write(f"予算変化: ¥{int(res['reward']['budget_change']):,}")
-            cols[1].write(f"在庫変化: {res['reward']['stock_change']}個")
-            
-            debt_val = res['reward']['debt_change']
-            debt_color = "red" if debt_val > 0 else "green"
-            debt_sign = "+" if debt_val > 0 else ""
-            cols[2].markdown(f"技術負債: :{debt_color}[{debt_sign}{int(debt_val)} pt]")
+            with st.container():
+                st.markdown("### 📊 今回のコード解析結果")
+                col_a, col_b, col_c = st.columns(3)
+                
+                # インセンティブ（報酬要因）
+                with col_a:
+                    st.write("**✨ プラス評価**")
+                    if code_info["function_count"] > 0: st.write(f"- 関数作成 (+{code_info['function_count']})")
+                    if code_info["class_count"] > 0: st.write("- クラス化ボーナス (運営費減)")
+                    if code_info["has_with"]: st.write("- 丁寧なリソース管理")
+                    if not any([code_info["function_count"], code_info["class_count"]]):
+                        st.write("- (特になし)")
+
+                # ペナルティ（負債要因）
+                with col_b:
+                    st.write("**⚠️ マイナス評価**")
+                    if code_info["max_depth"] > 3: st.write(f"- ネストが深すぎ ({code_info['max_depth']})")
+                    avg_len = code_info["line_count"] / max(1, code_info["function_count"])
+                    if avg_len > 15: st.write("- 1関数が長すぎ")
+                    if code_info.get("if_count", 0) > 5: st.write("- 条件分岐が多すぎ")
+                    if not any([code_info["max_depth"] > 3, avg_len > 15]):
+                        st.write("- (特になし)")
+
+                # 経営数値への影響
+                with col_c:
+                    st.write("**📈 経営数値変化**")
+                    debt_val = res['reward']['debt_change']
+                    d_color = "red" if debt_val > 0 else "green"
+                    d_sign  = "+" if debt_val > 0 else "±" if debt_val == 0 else ""
+                    st.markdown(f"技術負債: :{d_color}[{d_sign}{int(debt_val)} pt]")
+                    st.write(f"予算増減: ¥{int(res['reward']['budget_change']):,}")
+                    st.write(f"在庫増減: {res['reward']['stock_change']}個")
+
+            if res["output"]:
+                with st.expander("📝 実行ログ（標準出力）"):
+                    st.code(res["output"])
 
 st.divider()
 show_financial_history(game.financial_history)
