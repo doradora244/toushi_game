@@ -33,7 +33,7 @@ class Game:
         """
         # --- ターン管理 ---
         self.current_turn = 1   # 現在のターン（1 から始まる）
-        self.max_turns    = 3   # 最大ターン数（MVP は 3 ターン固定）
+        self.max_turns    = 10  # 最大ターン数（10ターン）
 
         # --- プレイヤーの資金 ---
         self.money = 100000     # 初期資金: 10万円
@@ -47,8 +47,8 @@ class Game:
         # --- ゲーム状態フラグ ---
         self.is_game_over = False  # ゲームが終わったかどうか
 
-        # --- 今ターンの状態 ---
-        self.challenge_done_this_turn = False  # 今ターンにチャレンジ済みか
+        # --- 今ターンのアクション回数 ---
+        self.actions_done_this_turn = 0  # 今ターンに実行したアクション数
 
         # --- 過去の決算記録（リストで複数の決算を蓄積） ---
         # リスト = [] で囲まれた複数要素の集まり
@@ -96,8 +96,8 @@ class Game:
             self.financial_history.append(result)  # リストの末尾に追加
 
             # 5. ターンを進める
-            self.current_turn += 1              # current_turn を 1 増やす
-            self.challenge_done_this_turn = False  # 次のターン用にリセット
+            self.current_turn += 1         # current_turn を 1 増やす
+            self.actions_done_this_turn = 0  # 次のターン用にリセット
 
             # 6. ゲーム終了チェック
             # max_turns を超えたらゲームオーバーフラグを立てる

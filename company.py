@@ -117,6 +117,26 @@ class Company:
         """
         self.bug_rate = min(100, self.bug_rate + 2)  # バグ率 +2（上限100）
 
+    def apply_action_reward(self, reward):
+        """
+        アクション報酬を適用します。
+
+        引数:
+            reward (dict | None):
+                {"quality": int, "bug_reduction": int, "users": int}
+                None の場合は何もしない
+
+        【.get() とは？】
+        辞書から値を取り出すメソッドです。
+        reward.get("quality", 0) は
+        "quality" キーがあればその値を、なければ 0 を返します。
+        """
+        if not reward:
+            return
+        self.quality   = min(100, self.quality  + reward.get("quality", 0))
+        self.bug_rate  = max(0,   self.bug_rate - reward.get("bug_reduction", 0))
+        self.users    += reward.get("users", 0)
+
     def get_summary(self):
         """
         会社の現在の状態を辞書（dict）で返します。
