@@ -8,6 +8,8 @@ from game import Game
 from actions import ACTIONS, get_action, get_available_actions
 from code_runner import run_player_code
 from code_inspector import analyze_code, calculate_tech_debt
+from missions import get_mission
+from streamlit_ace import st_ace
 
 # ============================================================
 # ページ設定
@@ -172,8 +174,6 @@ with left_col:
             st.session_state.screen = "result"
             st.rerun()
 
-from missions import get_mission
-
 with right_col:
     # ----------------------------------------------------------
     # 経営ミッションとコードエディタ
@@ -203,8 +203,6 @@ with right_col:
         for i, hint in enumerate(mission['hints']):
             st.markdown(f"**Step {i+1}**")
             st.markdown(hint)
-
-from streamlit_ace import st_ace
 
     # 統合コードエディタ
     st.write("**✏️ 会社の経営システム（全体コード）:**")
