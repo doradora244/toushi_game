@@ -1,0 +1,17 @@
+# Python のキャッシュファイル（自動生成されるので Git に含めない）
+__pycache__/
+*.pyc
+*.pyo
+
+# 仮想環境
+.venv/
+venv/
+env/
+
+# OS が作る隠しファイル
+.DS_Store
+Thumbs.db
+
+# エディタの設定ファイル
+.vscode/
+.idea/
