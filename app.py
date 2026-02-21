@@ -45,7 +45,9 @@ def show_company_detail(company):
         st.write("**事業状況**")
         st.write(f"- 製品数: {summary['製品数']}")
         st.write(f"- 総在庫数: {summary['総在庫数']}")
-        st.write(f"- 累計販売数: {summary['累計販売数']}")
+        st.write(f"- 技術負債: {int(company.tech_debt)} pt")
+        if company.tech_debt > 20:
+            st.warning("⚠️ 負債が溜まっています！リファクタリングを検討してください。")
 
     if hasattr(company, 'products') and company.products:
         st.write("---")
@@ -154,68 +156,107 @@ with left_col:
         if st.button("▶ 次のターンへ", type="primary", use_container_width=True):
             st.session_state.screen = "main"
             st.session_state.action_result = None
-            st.session_state.selected_action_id = None
             st.rerun()
 
     else:
-        st.write("### 🎯 アクション")
-        available_actions = get_available_actions(game.current_turn)
-        available_ids = {a["id"] for a in available_actions}
+        # メイン画面の左側：ステータス詳細
+        show_company_detail(game.company)
         
-        for action in ACTIONS:
-            if action["id"] in available_ids:
-                if st.button(action["name"], use_container_width=True, key=f"btn_{action['id']}"):
-                    st.session_state.selected_action_id = action["id"]
-                    st.session_state.action_result = None
-                    st.session_state.attempt_count += 1
-                    st.rerun()
-            else:
-                st.button(f"🔒 {action['name']}", disabled=True, use_container_width=True)
-
         st.divider()
+        st.info("💡 ヒント: 右側のエディタで『経営ロジック』を改良してください。修正が終わったら「システムを更新」を押しましょう。")
+
         if st.button("⏭ 決算フェーズへ", use_container_width=True, type="primary"):
             result = game.do_settlement()
             st.session_state.last_settlement = result
             st.session_state.screen = "result"
             st.rerun()
 
+from missions import get_mission
+
 with right_col:
-    if st.session_state.selected_action_id is None:
-        show_company_detail(game.company)
-        st.divider()
-        show_financial_history(game.financial_history)
-    else:
-        action = get_action(st.session_state.selected_action_id)
-        st.subheader(action["name"])
-        st.write(action["description"])
+    # ----------------------------------------------------------
+    # 経営ミッションとコードエディタ
+    # ----------------------------------------------------------
+    mission = get_mission(game.current_turn)
+    st.subheader(f"🛠️ 今期のミッション: {mission['title']}")
+    
+    with st.expander("🎯 ミッション詳細", expanded=True):
+        st.write(mission['description'])
+        st.write(f"**目標:** {mission['goal']}")
+        st.caption(f"📍 注力エリア: {mission['target_area']}")
+
+    # ヒント表示（3段階）
+    with st.expander("💡 開発のヒントを見る"):
+        for i, hint in enumerate(mission['hints']):
+            st.markdown(f"**Step {i+1}**")
+            st.markdown(hint)
+
+    # 統合コードエディタ
+    st.write("**✏️ 会社の経営システム（全体コード）:**")
+    user_code = st.text_area(
+        label="company_logic.py",
+        key=f"code_editor_{game.current_turn}",
+        value=game.company.current_code,
+        height=400
+    )
+
+    if st.button("🚀 経営システムを更新（実行）", type="primary", use_container_width=True):
+        from code_inspector import analyze_code, calculate_tech_debt
+        before = game.company.get_summary()
+        before_debt = game.company.tech_debt
         
-        with st.expander("💡 ヒントを見る"):
-            for i, h in enumerate(action["hints"]):
-                st.write(f"**Lv{i+1}**: {h}")
-
-        code_key = f"code_{action['id']}_{st.session_state.attempt_count}"
-        user_code = st.text_area("Pythonコード", key=code_key, value=action["starter_code"], height=250)
-
-        if st.button("▶ 実行する", type="primary", use_container_width=True):
-            before = game.company.get_summary()
-            output, error = run_player_code(user_code, game.company)
+        # 実行
+        output, error = run_player_code(user_code, game.company)
+        
+        if error is None:
+            # コード解析と負債計算
+            code_info = analyze_code(user_code)
+            debt = calculate_tech_debt(code_info)
+            
+            # コードと負債を保存
+            game.company.current_code = user_code
+            game.company.tech_debt = debt
+            
             after = game.company.get_summary()
-
-            success = (error is None)
+            debt_change = debt - before_debt
+            
             reward = {
                 "budget_change": after["予算"] - before["予算"],
-                "stock_change": after["総在庫数"] - before["総在庫数"],
+                "stock_change":  after["総在庫数"] - before["総在庫数"],
+                "debt_change":   debt_change
             }
-            if success: game.actions_done_this_turn += 1
-            
-            st.session_state.action_result = {"success": success, "output": output, "error": error, "reward": reward}
+            game.actions_done_this_turn += 1
+            st.session_state.action_result = {"success": True, "output": output, "error": None, "reward": reward}
+        else:
+            st.session_state.action_result = {"success": False, "output": output, "error": error, "reward": None}
+        st.rerun()
+
+    # リセット機能
+    with st.expander("⚠️ 高度な操作"):
+        if st.button("🔄 経営システムを初期化", use_container_width=True, help="コードをゲーム開始時の状態に戻します。"):
+            game.company.current_code = game.company._get_initial_code()
+            game.company.tech_debt = 0.0
+            st.toast("システムを初期化しました")
             st.rerun()
 
-        if st.session_state.action_result:
-            res = st.session_state.action_result
-            if res["error"]: st.error(res["error"])
-            else:
-                st.success("実行完了！")
-                if res["output"]: st.code(res["output"])
-                st.write(f"予算変化: ¥{int(res['reward']['budget_change']):,}")
-                st.write(f"在庫変化: {res['reward']['stock_change']}個")
+    # 実行結果
+    if st.session_state.action_result:
+        res = st.session_state.action_result
+        if res["error"]:
+            st.error(f"❌ システムにエラーがあります：\n{res['error']}")
+            st.info("💡 ヒント: インデント（半角スペース）が崩れていないか確認してください。")
+        else:
+            st.success("✅ 経営システムが正常に更新されました！")
+            if res["output"]: st.code(res["output"])
+            
+            cols = st.columns(3)
+            cols[0].write(f"予算変化: ¥{int(res['reward']['budget_change']):,}")
+            cols[1].write(f"在庫変化: {res['reward']['stock_change']}個")
+            
+            debt_val = res['reward']['debt_change']
+            debt_color = "red" if debt_val > 0 else "green"
+            debt_sign = "+" if debt_val > 0 else ""
+            cols[2].markdown(f"技術負債: :{debt_color}[{debt_sign}{int(debt_val)} pt]")
+
+st.divider()
+show_financial_history(game.financial_history)
