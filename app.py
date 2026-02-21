@@ -269,22 +269,28 @@ with right_col:
                 
                 # インセンティブ（報酬要因）
                 with col_a:
-                    st.write("**✨ プラス評価**")
-                    if code_info["function_count"] > 0: st.write(f"- 関数作成 (+{code_info['function_count']})")
-                    if code_info["class_count"] > 0: st.write("- クラス化ボーナス (運営費減)")
-                    if code_info["has_with"]: st.write("- 丁寧なリソース管理")
+                    st.write("**✨ 経営へのプラス影響**")
+                    if code_info["function_count"] > 0: 
+                        st.write(f"- **関数化 (+{code_info['function_count']})**: 手順を自動化した証拠です。")
+                    if code_info["class_count"] > 0: 
+                        st.write("- **クラス化ボーナス**: 組織的な管理ができているため、運営費が大幅に下がります。")
+                    if code_info["has_with"]: 
+                        st.write("- **リソース管理**: 無駄のない丁寧な処理が行われています。")
                     if not any([code_info["function_count"], code_info["class_count"]]):
-                        st.write("- (特になし)")
+                        st.write("- (特になし。もっと組織的なコードを目指しましょう)")
 
                 # ペナルティ（負債要因）
                 with col_b:
-                    st.write("**⚠️ マイナス評価**")
-                    if code_info["max_depth"] > 3: st.write(f"- ネストが深すぎ ({code_info['max_depth']})")
+                    st.write("**⚠️ 経営へのマイナス影響**")
+                    if code_info["max_depth"] > 3: 
+                        st.write(f"- **深いネスト ({code_info['max_depth']})**: 構造が複雑すぎて、メンテナンスが困難（負債）です。")
                     avg_len = code_info["line_count"] / max(1, code_info["function_count"])
-                    if avg_len > 15: st.write("- 1関数が長すぎ")
-                    if code_info.get("if_count", 0) > 5: st.write("- 条件分岐が多すぎ")
+                    if avg_len > 15: 
+                        st.write("- **肥大化した関数**: 1つの手順が長すぎて、バグの原因になりやすいです。")
+                    if code_info.get("if_count", 0) > 5: 
+                        st.write("- **多すぎる条件分岐**: 例外処理が多すぎて、経営の見通しが悪くなっています。")
                     if not any([code_info["max_depth"] > 3, avg_len > 15]):
-                        st.write("- (特になし)")
+                        st.write("- (クリーンな状態です！この品質を維持しましょう)")
 
                 # 経営数値への影響
                 with col_c:
