@@ -1,8 +1,20 @@
-# ============================================================
-# missions.py — ターンごとの経営課題（ミッション）定義
-# ============================================================
+# missions.py — 経営ミッションの定義
 
-# MISSIONS を IDベースに変更し、達成条件を追加
+def cond_starter(game):
+    return len(game.company.products) > 0
+
+def cond_restock(game):
+    products = game.company.products
+    has_sales = any(p.total_sold > 0 for p in products)
+    budget_ok = game.company.budget > 150000
+    return has_sales and budget_ok
+
+def cond_refactor(game):
+    return game.company.tech_debt < 5 and game.company.profit > 10000
+
+def cond_growth(game):
+    return False
+
 MISSIONS = {
     "starter": {
         "title": "🚀 最初の製品をリリースしよう！",
@@ -13,7 +25,7 @@ MISSIONS = {
             "### ⚠️ ステップ2：二重投資を防ぐ\n`if len(company.products) == 0:` で囲って、無駄な出費を抑えましょう。"
         ],
         "target_area": "エディタの1行目",
-        "condition": lambda game: len(game.company.products) > 0,
+        "condition": cond_starter,
         "next_mission": "restock_auto"
     },
     "restock_auto": {
@@ -25,7 +37,7 @@ MISSIONS = {
             "### 📖 ステップ2：補充の判断\n`if p.stock < 10:` なら `company.restock(p.name, 20)` しましょう。"
         ],
         "target_area": "既存コードの下",
-        "condition": lambda game: any(p.total_sold > 0 for p in game.company.products) and game.company.budget > 150000, # 例: 売上が発生し、予算が回復傾向
+        "condition": cond_restock,
         "next_mission": "refactor_class"
     },
     "refactor_class": {
@@ -36,7 +48,7 @@ MISSIONS = {
             "### 📖 ステップ1：クラスによる「部門」の設立\n`class MyManagementSystem:` でロジックを包みます。"
         ],
         "target_area": "コード全体",
-        "condition": lambda game: game.company.tech_debt < 5 and game.company.profit > 10000,
+        "condition": cond_refactor,
         "next_mission": "growth"
     },
     "growth": {
@@ -47,7 +59,7 @@ MISSIONS = {
             "### 💡 ヒント\n- 良いコードを書くほど技術負債が減り、利益が残りやすくなります。"
         ],
         "target_area": "コード全体",
-        "condition": lambda game: False, # 最終ミッション
+        "condition": cond_growth,
         "next_mission": None
     }
 }
