@@ -220,27 +220,22 @@ def show_financial_dashboard(history):
                 ],
             )
 
-        st.caption("PL推移（棒グラフ）")
-        pl_bar_df = (
-            df.set_index("tick")[["revenue", "cogs", "profit"]]
-            .rename(columns={"revenue": "売上", "cogs": "売上原価", "profit": "営業利益"})
-            .tail(12)
+        st.caption("経営KPI")
+        k1, k2, k3 = st.columns(3)
+        gross_margin = (gross_v / revenue_v * 100) if revenue_v > 0 else 0.0
+        debt_ratio = (
+            (float(latest["loan_balance"]) / float(latest["assets"]) * 100)
+            if float(latest["assets"]) > 0
+            else 0.0
         )
-        st.bar_chart(pl_bar_df)
-
-        st.caption("BS推移（棒グラフ）")
-        bs_bar_df = (
-            df.set_index("tick")[["assets", "loan_balance", "equity"]]
-            .rename(
-                columns={
-                    "assets": "総資産",
-                    "loan_balance": "負債",
-                    "equity": "純資産",
-                }
-            )
-            .tail(12)
+        equity_ratio = (
+            (float(latest["equity"]) / float(latest["assets"]) * 100)
+            if float(latest["assets"]) > 0
+            else 0.0
         )
-        st.bar_chart(bs_bar_df)
+        k1.metric("売上総利益率", f"{gross_margin:.1f}%")
+        k2.metric("負債比率", f"{debt_ratio:.1f}%")
+        k3.metric("自己資本比率", f"{equity_ratio:.1f}%")
 
     with right_col:
         st.caption("株価チャート")
