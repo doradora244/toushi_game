@@ -26,6 +26,7 @@ class Company:
         self.intangible_assets = 0.0
         self.sales_channels = []
         self.subscription_plans = []
+        self.b2b_contracts = []
 
         # プレイヤーが編集するコードの初期値
         self.current_code = self._get_initial_code()
@@ -41,6 +42,8 @@ class Company:
         self.interest_cost = 0.0
         self.channel_cost = 0.0
         self.subscription_revenue = 0.0
+        self.b2b_revenue = 0.0
+        self.b2b_cost = 0.0
 
     def _get_initial_code(self):
         """?????????????????"""
@@ -62,6 +65,7 @@ class Company:
             "intangible_assets": 0.0,
             "sales_channels": [],
             "subscription_plans": [],
+            "b2b_contracts": [],
             "cogs": 0.0,
             "gross_profit": 0.0,
             "fixed_cost": 0.0,
@@ -69,6 +73,8 @@ class Company:
             "interest_cost": 0.0,
             "channel_cost": 0.0,
             "subscription_revenue": 0.0,
+            "b2b_revenue": 0.0,
+            "b2b_cost": 0.0,
         }
         for key, value in defaults.items():
             if not hasattr(self, key):
@@ -251,6 +257,94 @@ class Company:
         print(f"サブスクプラン '{name}' を開始（加入者 {subscribers}）")
         return True
 
+    def run_training_program(self, budget):
+        """人材育成: 技術負債を減らし、ブランド基礎力を少し上げる"""
+        self._ensure_state()
+        if budget <= 0:
+            print("予算は1以上で指定してください")
+            return False
+        if self.budget < budget:
+            print(f"資金不足で研修投資できません（必要 JPY {int(budget):,}）")
+            return False
+        self.budget -= budget
+        debt_reduce = budget / 120000
+        self.tech_debt = max(0.0, self.tech_debt - debt_reduce)
+        brand_bonus = min(0.04, budget / 300000)
+        for p in self.products:
+            p.brand_power += brand_bonus
+        self.intangible_assets += budget * 0.25
+        print(f"研修を実施。技術負債 -{debt_reduce:.2f}、ブランド補正 +{brand_bonus:.3f}")
+        return True
+
+    def sign_b2b_contract(
+        self,
+        name,
+        unit_price,
+        units_per_tick,
+        duration=8,
+        cost_per_unit=None,
+        setup_cost=5000,
+    ):
+        """B2B契約を締結して固定的な売上を作る"""
+        self._ensure_state()
+        if any(c["name"] == name for c in self.b2b_contracts):
+            print(f"B2B契約 '{name}' はすでに存在します")
+            return False
+        if unit_price <= 0 or units_per_tick <= 0 or duration <= 0:
+            print("価格・数量・期間は1以上で指定してください")
+            return False
+        if self.budget < setup_cost:
+            print(f"資金不足で契約準備できません（必要 JPY {int(setup_cost):,}）")
+            return False
+        if cost_per_unit is None:
+            avg_cost = (
+                sum(p.cost for p in self.products) / len(self.products)
+                if self.products
+                else unit_price * 0.45
+            )
+            cost_per_unit = avg_cost
+        self.budget -= setup_cost
+        self.b2b_contracts.append(
+            {
+                "name": name,
+                "unit_price": float(unit_price),
+                "units_per_tick": int(units_per_tick),
+                "remaining_ticks": int(duration),
+                "cost_per_unit": float(max(1, cost_per_unit)),
+            }
+        )
+        self.intangible_assets += setup_cost * 0.5
+        print(f"B2B契約 '{name}' を締結（期間 {duration} tick）")
+        return True
+
+    def acquire_competitor(self, name, purchase_price, add_team=2, product_bundle=None):
+        """競合買収: チーム・商品をまとめて獲得"""
+        self._ensure_state()
+        if purchase_price <= 0:
+            print("買収金額は1以上で指定してください")
+            return False
+        if self.budget < purchase_price:
+            print(f"資金不足で買収できません（必要 JPY {int(purchase_price):,}）")
+            return False
+        self.budget -= purchase_price
+        self.team_size += max(0, int(add_team))
+        if product_bundle:
+            for item in product_bundle:
+                n = item.get("name")
+                if not n or any(p.name == n for p in self.products):
+                    continue
+                self.products.append(
+                    Product(
+                        n,
+                        item.get("cost", 300),
+                        item.get("price", 900),
+                        item.get("stock", 10),
+                    )
+                )
+        self.intangible_assets += purchase_price * 0.7
+        print(f"競合 '{name}' を買収しました")
+        return True
+
     def repay_loan(self, amount):
         """借入返済"""
         self._ensure_state()
@@ -351,6 +445,24 @@ class Company:
                 )
         revenue += subscription_revenue
 
+        # B2B契約収益
+        b2b_revenue = 0.0
+        b2b_cost = 0.0
+        if self.b2b_contracts:
+            active_contracts = []
+            for contract in self.b2b_contracts:
+                units = contract["units_per_tick"]
+                b2b_revenue += contract["unit_price"] * units
+                auto_cost_reduction = min(0.25, self.automation_level * 0.05)
+                effective_unit_cost = contract["cost_per_unit"] * (1 - auto_cost_reduction)
+                b2b_cost += effective_unit_cost * units
+                contract["remaining_ticks"] -= 1
+                if contract["remaining_ticks"] > 0:
+                    active_contracts.append(contract)
+            self.b2b_contracts = active_contracts
+        revenue += b2b_revenue
+        mfg_cost += b2b_cost
+
         base_fixed_cost = 5000
         auto_payroll_reduction = min(0.4, self.automation_level * 0.06)
         payroll_cost = self.team_size * self.salary_per_member * (1 - auto_payroll_reduction)
@@ -376,6 +488,8 @@ class Company:
         self.interest_cost = loan_interest
         self.channel_cost = channel_running_cost
         self.subscription_revenue = subscription_revenue
+        self.b2b_revenue = b2b_revenue
+        self.b2b_cost = b2b_cost
         self.cash_reserve = max(self.cash_reserve, self.budget * 0.1)
         self.marketing_boost *= 0.65
 
@@ -388,6 +502,7 @@ class Company:
         )
         print(f"原価: JPY {int(mfg_cost):,}")
         print(f"サブスク売上: JPY {int(subscription_revenue):,}")
+        print(f"B2B売上: JPY {int(b2b_revenue):,}")
         print(f"利益: JPY {int(profit):,}")
         print(f"資金の増減: JPY {int(cash_flow):,}")
 
@@ -433,12 +548,14 @@ class Company:
         return {
             "revenue": self.revenue,
             "subscription_revenue": self.subscription_revenue,
+            "b2b_revenue": self.b2b_revenue,
             "cogs": self.cogs,
             "gross_profit": self.gross_profit,
             "fixed_cost": self.fixed_cost,
             "payroll_cost": self.payroll_cost,
             "interest_cost": self.interest_cost,
             "channel_cost": self.channel_cost,
+            "b2b_cost": self.b2b_cost,
             "operating_profit": self.profit,
         }
 
@@ -461,4 +578,5 @@ class Company:
             "キャパ": self.capacity_units,
             "販路数": len(self.sales_channels),
             "サブスク数": len(self.subscription_plans),
+            "B2B契約数": len(self.b2b_contracts),
         }

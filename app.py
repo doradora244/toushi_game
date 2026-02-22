@@ -57,6 +57,7 @@ def show_company_detail(company):
         st.write(f"- キャパ: {int(getattr(company, 'capacity_units', 0))}")
         st.write(f"- 販路数: {len(getattr(company, 'sales_channels', []))}")
         st.write(f"- サブスク数: {len(getattr(company, 'subscription_plans', []))}")
+        st.write(f"- B2B契約数: {len(getattr(company, 'b2b_contracts', []))}")
         total_stock = sum(p.stock for p in company.products)
         total_sold = sum(p.total_sold for p in company.products)
         st.write(f"- 在庫合計: {total_stock}")
@@ -260,6 +261,8 @@ def show_financial_statements(company):
     pl = company.get_pl_statement()
     bs = company.get_balance_sheet()
     sub_revenue = pl.get("subscription_revenue", 0)
+    b2b_revenue = pl.get("b2b_revenue", 0)
+    b2b_cost = pl.get("b2b_cost", 0)
     cogs = pl.get("cogs", 0)
     gross_profit = pl.get("gross_profit", pl.get("revenue", 0) - cogs)
     fixed_cost = pl.get("fixed_cost", 0)
@@ -273,6 +276,7 @@ def show_financial_statements(company):
         [
             {"項目": "売上", "金額": int(pl["revenue"])},
             {"項目": "サブスク売上", "金額": int(sub_revenue)},
+            {"項目": "B2B売上", "金額": int(b2b_revenue)},
             {"項目": "売上原価", "金額": int(cogs)},
             {"項目": "粗利益", "金額": int(gross_profit)},
             {"項目": "固定費(合計)", "金額": int(fixed_cost)},
@@ -310,6 +314,7 @@ def show_financial_statements(company):
             [
                 ("売上", _yen(pl["revenue"])),
                 ("サブスク売上", _yen(sub_revenue)),
+                ("B2B売上", _yen(b2b_revenue)),
                 ("売上原価", _yen(cogs)),
                 ("売上総利益", _yen(gross_profit)),
                 ("販管費", _yen(sga_cost)),
@@ -322,6 +327,7 @@ def show_financial_statements(company):
             "#1565c0",
             [
                 ("販路維持費", _yen(channel_cost)),
+                ("B2B原価", _yen(b2b_cost)),
                 ("営業外費用(利息)", _yen(interest_cost)),
                 ("経常利益(簡易)", _yen(ordinary_profit)),
                 ("当期純利益(簡易)", _yen(operating_profit)),
@@ -583,6 +589,9 @@ with right_col:
 - `company.invest_automation(budget)` で自動化投資
 - `company.open_sales_channel(name, ...)` で販路開拓
 - `company.launch_subscription_plan(name, fee, subscribers)` で継続課金開始
+- `company.run_training_program(budget)` で人材育成
+- `company.sign_b2b_contract(name, unit_price, units_per_tick, duration=...)` でB2B契約
+- `company.acquire_competitor(name, purchase_price, add_team=...)` でM&A
 - `company.take_loan(amount)` / `company.repay_loan(amount)` で資金調達
 - `company.get_balance_sheet()` / `company.get_pl_statement()` で財務取得
 - `import json` など標準ライブラリのインポートも利用可能
@@ -764,6 +773,9 @@ with right_col:
 - `company.set_product_price(name, new_price)`
 - `company.open_sales_channel(name, setup_cost=..., demand_bonus=..., running_cost=...)`
 - `company.launch_subscription_plan(name, monthly_fee, subscribers, churn_rate=0.03)`
+- `company.run_training_program(budget)`
+- `company.sign_b2b_contract(name, unit_price, units_per_tick, duration=8)`
+- `company.acquire_competitor(name, purchase_price, add_team=2, product_bundle=[...])`
 - `company.take_loan(amount)` / `company.repay_loan(amount)`
 - `company.get_pl_statement()`
 - `company.get_balance_sheet()`
