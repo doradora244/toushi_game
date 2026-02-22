@@ -595,31 +595,59 @@ with right_col:
             "title": "1. 商品ラインを作る",
             "body": "まずは商品を複数投入して、売上が発生する土台を作ります。",
             "code": "company.launch_products_from_catalog(limit=4)",
+            "meaning": [
+                "`launch_products_from_catalog(...)` は複数商品をまとめて作る命令",
+                "最初の手作業を減らして、すぐ経営フェーズに入るために使う",
+            ],
         },
         {
             "title": "2. 在庫運用を自動化する",
             "body": "在庫切れを防ぐ補充ルールを先に作ると、以降の施策が安定します。",
             "code": 'for p in company.products:\n    if p.stock < 10:\n        company.restock(p.name, 20)',
+            "meaning": [
+                "`for` は全商品を順番に見るための構文",
+                "`if` は条件に合う商品だけ補充するための構文",
+                "`restock(...)` は在庫を追加する命令",
+            ],
         },
         {
             "title": "3. 組織と需要を伸ばす",
             "body": "採用とマーケで成長速度を上げます。",
             "code": "company.hire_team(2)\ncompany.run_marketing_campaign(20000)",
+            "meaning": [
+                "`hire_team(...)` は実行力を増やす投資",
+                "`run_marketing_campaign(...)` は短期の需要を上げる施策",
+            ],
         },
         {
             "title": "4. 生産性へ投資する",
             "body": "研究・自動化・キャパ増強で中長期の体質を改善します。",
             "code": "company.invest_rnd(20000)\ncompany.invest_automation(30000)\ncompany.expand_capacity(20)",
+            "meaning": [
+                "`invest_rnd(...)` は品質/効率の改善に効く",
+                "`invest_automation(...)` は運用効率を上げる",
+                "`expand_capacity(...)` は供給上限を上げる",
+            ],
         },
         {
             "title": "5. 事業を拡張する",
             "body": "販路開拓とサブスクで収益源を増やし、価格戦略を適用します。",
             "code": 'company.open_sales_channel("ECモール", setup_cost=15000, demand_bonus=0.12)\ncompany.launch_subscription_plan("プレミアム会員", 500, 120)\ncompany.set_product_price("コーヒー", 980)',
+            "meaning": [
+                "`open_sales_channel(...)` は販売チャネルを増やす",
+                "`launch_subscription_plan(...)` は継続収益を作る",
+                "`set_product_price(...)` は価格戦略の基本",
+            ],
         },
         {
             "title": "6. 財務で経営判断する",
             "body": "BS/PLを見て資金調達まで含めた意思決定に進みます。",
             "code": 'bs = company.get_balance_sheet()\npl = company.get_pl_statement()\nif bs["assets"]["cash"] < 50000:\n    company.take_loan(80000)\nelse:\n    company.repay_loan(20000)\nprint(pl)\nprint(bs)',
+            "meaning": [
+                "`get_balance_sheet()` で資産・負債・純資産を確認",
+                "`get_pl_statement()` で売上・利益の構造を確認",
+                "財務を見て借入/返済を判断するのが経営判断",
+            ],
         },
     ]
 
@@ -628,10 +656,13 @@ with right_col:
         0, min(st.session_state.tutorial_step_index, max_step)
     )
 
-    with st.expander("実装ステップガイド（1-6）", expanded=True):
+    with st.expander("初心者向けステップガイド（1-6）", expanded=True):
         current = tutorial_steps[st.session_state.tutorial_step_index]
         st.write(f"**{current['title']}**")
         st.write(current["body"])
+        st.write("**このステップのコードの意味**")
+        for line in current["meaning"]:
+            st.write(f"- {line}")
         st.code(current["code"], language="python")
         nav_col1, nav_col2, nav_col3 = st.columns([1, 2, 1])
         with nav_col1:
@@ -651,41 +682,30 @@ with right_col:
                 )
                 st.rerun()
 
-    mission = get_mission(st.session_state.current_mission_id)
-    st.subheader(f"🎯 ミッション: {mission['title']}")
-
-    with st.expander("ミッション詳細", expanded=True):
-        st.write(mission["description"])
-        st.write(f"**目標:** {mission['goal']}")
-
-    if mission.get("steps"):
-        with st.expander("やること手順", expanded=True):
-            for i, step in enumerate(mission["steps"], start=1):
-                st.write(f"{i}. {step}")
-
-    if mission.get("sample_code"):
-        with st.expander("サンプルコード", expanded=True):
-            st.code(mission["sample_code"], language="python")
-
-    with st.expander("開発のヒント", expanded=False):
-        for hint in mission["hints"]:
-            st.markdown(hint)
-
-    with st.expander("初心者向け: 1-6ステップの意味", expanded=True):
+    with st.expander("使えるコード一覧（初級/上級）", expanded=False):
         st.markdown(
             """
-1. **商品ラインを作る**  
-`launch_products_from_catalog(...)` は「売れる土台」を一気に作るコードです。
-2. **在庫運用を自動化する**  
-`for` で全商品を見て、`if` で不足時だけ `restock(...)` します。
-3. **組織と需要を伸ばす**  
-`hire_team(...)` は実行力、`run_marketing_campaign(...)` は短期需要に効きます。
-4. **生産性へ投資する**  
-`invest_rnd(...)` / `invest_automation(...)` / `expand_capacity(...)` で中長期改善。
-5. **事業を拡張する**  
-`open_sales_channel(...)` と `launch_subscription_plan(...)` で収益源を増やします。
-6. **財務で判断する**  
-`get_balance_sheet()` / `get_pl_statement()` を見て、借入・返済を判断します。
+**初級（最初に使う）**
+- `company.launch_products_from_catalog(limit=4)`
+- `company.restock(name, count)`
+- `for p in company.products: ...`
+- `if p.stock < 10: ...`
+- `print(...)`
+
+**中級（成長を作る）**
+- `company.hire_team(count, salary_per_member=None)`
+- `company.run_marketing_campaign(budget)`
+- `company.invest_rnd(budget)`
+- `company.invest_automation(budget)`
+- `company.expand_capacity(units)`
+
+**上級（経営の幅を広げる）**
+- `company.set_product_price(name, new_price)`
+- `company.open_sales_channel(name, setup_cost=..., demand_bonus=..., running_cost=...)`
+- `company.launch_subscription_plan(name, monthly_fee, subscribers, churn_rate=0.03)`
+- `company.take_loan(amount)` / `company.repay_loan(amount)`
+- `company.get_pl_statement()`
+- `company.get_balance_sheet()`
             """
         )
         st.code(
@@ -693,53 +713,10 @@ with right_col:
             '    if p.stock < 10:\n'
             '        company.restock(p.name, 20)\n'
             '\n'
-            'bs = company.get_balance_sheet()\n'
-            'pl = company.get_pl_statement()\n'
-            'print(pl["operating_profit"], bs["equity"]["total_equity"])',
-            language="python",
-        )
-
-    with st.expander("初心者向け: コードの読み方", expanded=False):
-        st.markdown(
-            """
-- `for p in company.products:`: 商品を1つずつ順番に処理する
-- `if p.stock < 10:`: 在庫が10未満のときだけ実行する
-- `def ...`: 処理を名前付きでまとめて再利用する
-- `status`: 会社の要約（資金・製品数など）を確認できる
-- `print(...)`: 実行結果をログに出して動作確認する
-            """
-        )
-
-    with st.expander("上級者向け: 使える経営コード一覧", expanded=False):
-        st.markdown(
-            """
-**商品・価格**
-- `company.develop_product(name, cost, price, stock)`
-- `company.set_product_price(name, new_price)`
-- `company.restock(name, count)`
-
-**組織・投資**
-- `company.hire_team(count, salary_per_member=None)`
-- `company.invest_rnd(budget)`
-- `company.invest_automation(budget)`
-- `company.expand_capacity(units)`
-
-**成長施策**
-- `company.run_marketing_campaign(budget)`
-- `company.open_sales_channel(name, setup_cost=..., demand_bonus=..., running_cost=...)`
-- `company.launch_subscription_plan(name, monthly_fee, subscribers, churn_rate=0.03)`
-
-**財務**
-- `company.take_loan(amount)` / `company.repay_loan(amount)`
-- `company.get_pl_statement()`
-- `company.get_balance_sheet()`
-            """
-        )
-        st.code(
-            'company.set_product_price("コーヒー", 980)\n'
             'company.open_sales_channel("ECモール", setup_cost=15000, demand_bonus=0.12)\n'
             'company.launch_subscription_plan("プレミアム会員", 500, 120)\n'
-            'print(company.get_pl_statement())',
+            'print(company.get_pl_statement())\n'
+            'print(company.get_balance_sheet())',
             language="python",
         )
 
