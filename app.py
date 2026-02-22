@@ -488,6 +488,10 @@ def init_session():
     if "tutorial_step_index" not in st.session_state:
         st.session_state.tutorial_step_index = 0
 
+    if "editor_code" not in st.session_state:
+        saved_code = getattr(st.session_state.game.company, "current_code", "")
+        st.session_state.editor_code = saved_code or ""
+
 # ============================================================
 # メイン
 # ============================================================
@@ -777,10 +781,11 @@ with right_col:
             language="python",
         )
 
-    st.write("**コード入力（空欄のまま書いてOK）**")
+    st.write("**コード入力（リロードしても保存されます）**")
+    initial_code = st.session_state.editor_code
     if st_ace:
         user_code = st_ace(
-            value="",
+            value=initial_code,
             language="python",
             theme="monokai",
             key="code_editor_realtime",
@@ -794,7 +799,15 @@ with right_col:
             keybinding="vscode",
         )
     else:
-        user_code = st.text_area(label="code", value="", height=400)
+        if "code_editor_fallback" not in st.session_state:
+            st.session_state.code_editor_fallback = initial_code
+        user_code = st.text_area(label="code", key="code_editor_fallback", height=400)
+
+    user_code = user_code or ""
+    if user_code != st.session_state.editor_code:
+        st.session_state.editor_code = user_code
+        game.company.current_code = user_code
+        save_game(game)
 
     if st.button("コードを実行", type="primary", use_container_width=True):
         before_debt = game.company.tech_debt
