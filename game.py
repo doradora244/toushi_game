@@ -15,21 +15,17 @@ class Game:
         ゲームの初期化。
         """
         # 進行管理
-        self.current_turn = 1
-        self.max_turns    = 12 # 全12ターン（1年間のイメージ）
+        self.elapsed_ticks = 0
+        self.is_paused = True
         
         # 会社と市場
         self.company = Company(name)
         self.market  = Market()
 
-        # 今ターンの行動制限
-        self.actions_per_turn = 2 
-        self.actions_done_this_turn = 0
-
         # 決算履歴の保存用（チャート用）
-        # 最初（ターン0）の状態を記録
+        # 最初（ティック0）の状態を記録
         self.financial_history = [{
-            "turn": 0,
+            "tick": 0,
             "revenue": 0,
             "cost": 0,
             "profit": 0,
@@ -37,14 +33,17 @@ class Game:
             "stock_price": self.company.stock_price
         }]
 
-    def get_turn_label(self):
-        """現在のターンを文字列で返します"""
-        return f"{self.current_turn} / {self.max_turns}"
+    def get_time_label(self):
+        """経過時間を文字列で返します（例：100 ticks）"""
+        return f"{self.elapsed_ticks} ticks"
 
-    def do_settlement(self):
+    def tick(self):
         """
-        決算（ターン終了処理）を行います。
+        1ティック分の更新処理を行います。
         """
+        if self.is_paused:
+            return None
+
         # 1. 会社の販売・利益計算
         profit = self.company.calculate_financials()
 
@@ -55,19 +54,18 @@ class Game:
 
         # 3. 履歴に保存
         result = {
-            "turn":        self.current_turn,
-            "revenue":     self.company.revenue,
-            "cost":        self.company.cost,
-            "profit":      profit,
-            "money_after": self.company.budget,
-            "stock_price": new_price,
+            "tick":         self.elapsed_ticks,
+            "revenue":      self.company.revenue,
+            "cost":         self.company.cost,
+            "profit":       profit,
+            "money_after":  self.company.budget,
+            "stock_price":  new_price,
             "stock_change": stock_change
         }
         self.financial_history.append(result)
 
-        # 4. ターンの進行
-        self.current_turn += 1
-        self.actions_done_this_turn = 0 
+        # 4. ティックの進行
+        self.elapsed_ticks += 1
 
         return result
 
