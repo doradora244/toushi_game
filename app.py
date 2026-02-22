@@ -350,7 +350,7 @@ for p in company.products:
     st.write("**コード入力（空欄のまま書いてOK）**")
     if st_ace:
         user_code = st_ace(
-            value=game.company.current_code,
+            value="",
             language="python",
             theme="monokai",
             key="code_editor_realtime",
@@ -364,7 +364,7 @@ for p in company.products:
             keybinding="vscode",
         )
     else:
-        user_code = st.text_area(label="code", value=game.company.current_code, height=400)
+        user_code = st.text_area(label="code", value="", height=400)
 
     if st.button("コードを実行", type="primary", use_container_width=True):
         before_debt = game.company.tech_debt
