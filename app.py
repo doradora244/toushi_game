@@ -53,6 +53,10 @@ def show_company_detail(company):
         st.write(f"- チーム人数: {int(getattr(company, 'team_size', 3))} 名")
         st.write(f"- 研究レベル: {float(getattr(company, 'rnd_level', 0.0)):.2f}")
         st.write(f"- 借入残高: ¥{int(getattr(company, 'loan_balance', 0.0)):,}")
+        st.write(f"- 自動化レベル: {float(getattr(company, 'automation_level', 0.0)):.2f}")
+        st.write(f"- キャパ: {int(getattr(company, 'capacity_units', 0))}")
+        st.write(f"- 販路数: {len(getattr(company, 'sales_channels', []))}")
+        st.write(f"- サブスク数: {len(getattr(company, 'subscription_plans', []))}")
         total_stock = sum(p.stock for p in company.products)
         total_sold = sum(p.total_sold for p in company.products)
         st.write(f"- 在庫合計: {total_stock}")
@@ -142,11 +146,14 @@ def show_financial_dashboard(history):
     df = pd.DataFrame(history).copy()
     for col in [
         "revenue",
+        "subscription_revenue",
         "cogs",
         "profit",
         "money_after",
         "assets",
         "inventory",
+        "fixed_assets",
+        "intangible_assets",
         "loan_balance",
         "equity",
         "stock_price",
@@ -161,6 +168,7 @@ def show_financial_dashboard(history):
         latest = df.iloc[-1]
         st.caption("PLマップ（最新ターン）")
         revenue_v = int(latest["revenue"])
+        sub_rev_v = int(latest["subscription_revenue"])
         cogs_v = int(latest["cogs"])
         gross_v = revenue_v - cogs_v
         fixed_v = int(max(0, latest["cost"] - latest["cogs"]))
@@ -175,6 +183,7 @@ def show_financial_dashboard(history):
                 "#2e7d32",
                 [
                     ("売上", _yen(revenue_v)),
+                    ("サブスク売上", _yen(sub_rev_v)),
                     ("売上原価", _yen(cogs_v)),
                     ("売上総利益", _yen(gross_v)),
                     ("販管費", _yen(sga_v)),
@@ -204,6 +213,8 @@ def show_financial_dashboard(history):
                 [
                     ("流動資産: 現金", _yen(latest["money_after"])),
                     ("流動資産: 棚卸資産", _yen(latest["inventory"])),
+                    ("固定資産", _yen(latest["fixed_assets"])),
+                    ("無形資産", _yen(latest["intangible_assets"])),
                     ("資産合計", _yen(latest["assets"])),
                 ],
             )
@@ -252,10 +263,12 @@ def show_financial_statements(company):
     pl_df = pd.DataFrame(
         [
             {"項目": "売上", "金額": int(pl["revenue"])},
+            {"項目": "サブスク売上", "金額": int(pl["subscription_revenue"])},
             {"項目": "売上原価", "金額": int(pl["cogs"])},
             {"項目": "粗利益", "金額": int(pl["gross_profit"])},
             {"項目": "固定費(合計)", "金額": int(pl["fixed_cost"])},
             {"項目": "人件費", "金額": int(pl["payroll_cost"])},
+            {"項目": "販路維持費", "金額": int(pl["channel_cost"])},
             {"項目": "支払利息", "金額": int(pl["interest_cost"])},
             {"項目": "営業利益", "金額": int(pl["operating_profit"])},
         ]
@@ -265,6 +278,8 @@ def show_financial_statements(company):
         [
             {"区分": "資産", "項目": "現金・預金", "金額": int(bs["assets"]["cash"])},
             {"区分": "資産", "項目": "棚卸資産", "金額": int(bs["assets"]["inventory"])},
+            {"区分": "資産", "項目": "固定資産", "金額": int(bs["assets"]["fixed_assets"])},
+            {"区分": "資産", "項目": "無形資産", "金額": int(bs["assets"]["intangible_assets"])},
             {"区分": "資産", "項目": "資産合計", "金額": int(bs["assets"]["total_assets"])},
             {"区分": "負債", "項目": "借入金", "金額": int(bs["liabilities"]["loan_balance"])},
             {
@@ -285,6 +300,7 @@ def show_financial_statements(company):
             "#2e7d32",
             [
                 ("売上", _yen(pl["revenue"])),
+                ("サブスク売上", _yen(pl["subscription_revenue"])),
                 ("売上原価", _yen(pl["cogs"])),
                 ("売上総利益", _yen(pl["gross_profit"])),
                 ("販管費", _yen(max(0, pl["fixed_cost"] - pl["interest_cost"]))),
@@ -296,6 +312,7 @@ def show_financial_statements(company):
             "PL: 営業外/最終",
             "#1565c0",
             [
+                ("販路維持費", _yen(pl["channel_cost"])),
                 ("営業外費用(利息)", _yen(pl["interest_cost"])),
                 ("経常利益(簡易)", _yen((pl["gross_profit"] - max(0, pl["fixed_cost"] - pl["interest_cost"])) - pl["interest_cost"])),
                 ("当期純利益(簡易)", _yen(pl["operating_profit"])),
@@ -310,6 +327,8 @@ def show_financial_statements(company):
             [
                 ("現金・預金", _yen(bs["assets"]["cash"])),
                 ("棚卸資産", _yen(bs["assets"]["inventory"])),
+                ("固定資産", _yen(bs["assets"]["fixed_assets"])),
+                ("無形資産", _yen(bs["assets"]["intangible_assets"])),
                 ("資産合計", _yen(bs["assets"]["total_assets"])),
             ],
         )
@@ -341,6 +360,10 @@ def snapshot_company(company) -> Dict[str, Any]:
         "team_size": int(getattr(company, "team_size", 3)),
         "rnd_level": float(getattr(company, "rnd_level", 0.0)),
         "loan_balance": float(getattr(company, "loan_balance", 0.0)),
+        "automation_level": float(getattr(company, "automation_level", 0.0)),
+        "capacity_units": int(getattr(company, "capacity_units", 0)),
+        "channels": len(getattr(company, "sales_channels", [])),
+        "subscriptions": len(getattr(company, "subscription_plans", [])),
         "products": [
             {
                 "name": p.name,
@@ -378,6 +401,22 @@ def build_change_explanations(before: Dict[str, Any], after: Dict[str, Any]) -> 
     loan_delta = after["loan_balance"] - before["loan_balance"]
     if abs(loan_delta) >= 1:
         lines.append(f"借入残高が {loan_delta:+,.0f} 円 変わりました。")
+
+    auto_delta = after["automation_level"] - before["automation_level"]
+    if abs(auto_delta) >= 0.01:
+        lines.append(f"自動化レベルが {auto_delta:+.2f} 変わりました。")
+
+    cap_delta = after["capacity_units"] - before["capacity_units"]
+    if cap_delta != 0:
+        lines.append(f"キャパが {cap_delta:+d} 変わりました。")
+
+    ch_delta = after["channels"] - before["channels"]
+    if ch_delta != 0:
+        lines.append(f"販路数が {ch_delta:+d} 変わりました。")
+
+    sub_delta = after["subscriptions"] - before["subscriptions"]
+    if sub_delta != 0:
+        lines.append(f"サブスク数が {sub_delta:+d} 変わりました。")
 
     before_map = {p["name"]: p for p in before["products"]}
     after_map = {p["name"]: p for p in after["products"]}
@@ -526,6 +565,11 @@ with right_col:
 - `company.hire_team(count, salary_per_member=None)` で採用
 - `company.run_marketing_campaign(budget)` で需要強化
 - `company.invest_rnd(budget)` で研究投資
+- `company.set_product_price(name, new_price)` で価格改定
+- `company.expand_capacity(units)` でキャパ増強
+- `company.invest_automation(budget)` で自動化投資
+- `company.open_sales_channel(name, ...)` で販路開拓
+- `company.launch_subscription_plan(name, fee, subscribers)` で継続課金開始
 - `company.take_loan(amount)` / `company.repay_loan(amount)` で資金調達
 - `company.get_balance_sheet()` / `company.get_pl_statement()` で財務取得
 - `import json` など標準ライブラリのインポートも利用可能
@@ -685,6 +729,36 @@ def restock_if_low(product, threshold=10, amount=20):
 
 for p in company.products:
     restock_if_low(p)
+```
+            """
+        )
+
+    with st.expander("上級経営テンプレ", expanded=False):
+        st.markdown(
+            """
+**1) 価格改定 + キャパ投資**
+```python
+company.set_product_price("コーヒー", 980)
+company.expand_capacity(20)
+```
+
+**2) 自動化 + 販路開拓**
+```python
+company.invest_automation(30000)
+company.open_sales_channel("ECモール", setup_cost=15000, demand_bonus=0.12)
+```
+
+**3) サブスクで継続収益**
+```python
+company.launch_subscription_plan("プレミアム会員", 500, 120)
+```
+
+**4) 財務を見て意思決定**
+```python
+bs = company.get_balance_sheet()
+pl = company.get_pl_statement()
+print(bs)
+print(pl)
 ```
             """
         )

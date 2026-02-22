@@ -20,6 +20,12 @@ class Company:
         self.cash_reserve = 0.0
         self.loan_balance = 0.0
         self.loan_interest_rate = 0.01
+        self.automation_level = 0.0
+        self.capacity_units = 60
+        self.fixed_assets = 0.0
+        self.intangible_assets = 0.0
+        self.sales_channels = []
+        self.subscription_plans = []
 
         # プレイヤーが編集するコードの初期値
         self.current_code = self._get_initial_code()
@@ -33,6 +39,8 @@ class Company:
         self.fixed_cost = 0.0
         self.payroll_cost = 0.0
         self.interest_cost = 0.0
+        self.channel_cost = 0.0
+        self.subscription_revenue = 0.0
 
     def _get_initial_code(self):
         """?????????????????"""
@@ -48,11 +56,19 @@ class Company:
             "cash_reserve": 0.0,
             "loan_balance": 0.0,
             "loan_interest_rate": 0.01,
+            "automation_level": 0.0,
+            "capacity_units": 60,
+            "fixed_assets": 0.0,
+            "intangible_assets": 0.0,
+            "sales_channels": [],
+            "subscription_plans": [],
             "cogs": 0.0,
             "gross_profit": 0.0,
             "fixed_cost": 0.0,
             "payroll_cost": 0.0,
             "interest_cost": 0.0,
+            "channel_cost": 0.0,
+            "subscription_revenue": 0.0,
         }
         for key, value in defaults.items():
             if not hasattr(self, key):
@@ -147,6 +163,94 @@ class Company:
         print(f"JPY {int(amount):,} を借入。借入残高: JPY {int(self.loan_balance):,}")
         return True
 
+    def set_product_price(self, product_name, new_price):
+        """価格改定"""
+        self._ensure_state()
+        if new_price <= 0:
+            print("価格は1以上で指定してください")
+            return False
+        for p in self.products:
+            if p.name == product_name:
+                old = p.price
+                p.price = new_price
+                print(f"'{product_name}' の価格を JPY {int(old):,} -> JPY {int(new_price):,} に変更")
+                return True
+        print(f"製品 '{product_name}' が見つかりません")
+        return False
+
+    def expand_capacity(self, units, investment_per_unit=700):
+        """生産・販売キャパを拡張"""
+        self._ensure_state()
+        if units <= 0:
+            print("拡張ユニット数は1以上で指定してください")
+            return False
+        total_cost = units * investment_per_unit
+        if self.budget < total_cost:
+            print(f"資金不足で設備投資できません（必要 JPY {int(total_cost):,}）")
+            return False
+        self.budget -= total_cost
+        self.capacity_units += units
+        self.fixed_assets += total_cost
+        print(f"キャパを {units} 拡張（現在 {self.capacity_units}）")
+        return True
+
+    def invest_automation(self, budget):
+        """自動化投資: 原価・人件費効率を改善"""
+        self._ensure_state()
+        if budget <= 0:
+            print("予算は1以上で指定してください")
+            return False
+        if self.budget < budget:
+            print(f"資金不足で自動化投資できません（必要 JPY {int(budget):,}）")
+            return False
+        self.budget -= budget
+        self.automation_level += min(2.0, budget / 100000)
+        self.fixed_assets += budget * 0.8
+        self.intangible_assets += budget * 0.2
+        print(f"自動化レベルが {self.automation_level:.2f} になりました")
+        return True
+
+    def open_sales_channel(self, name, setup_cost=20000, demand_bonus=0.15, running_cost=1200):
+        """販路開拓: 需要増の代わりに固定コスト増"""
+        self._ensure_state()
+        if any(ch["name"] == name for ch in self.sales_channels):
+            print(f"販路 '{name}' はすでに開設済みです")
+            return False
+        if self.budget < setup_cost:
+            print(f"資金不足で販路を開設できません（必要 JPY {int(setup_cost):,}）")
+            return False
+        self.budget -= setup_cost
+        self.sales_channels.append(
+            {
+                "name": name,
+                "demand_bonus": max(0.0, demand_bonus),
+                "running_cost": max(0.0, running_cost),
+            }
+        )
+        self.intangible_assets += setup_cost * 0.5
+        print(f"販路 '{name}' を開設しました")
+        return True
+
+    def launch_subscription_plan(self, name, monthly_fee, subscribers, churn_rate=0.03):
+        """サブスク型の継続収益を追加"""
+        self._ensure_state()
+        if monthly_fee <= 0 or subscribers <= 0:
+            print("料金・加入者は1以上で指定してください")
+            return False
+        if any(plan["name"] == name for plan in self.subscription_plans):
+            print(f"プラン '{name}' はすでに存在します")
+            return False
+        self.subscription_plans.append(
+            {
+                "name": name,
+                "monthly_fee": float(monthly_fee),
+                "subscribers": int(subscribers),
+                "churn_rate": max(0.0, min(0.5, churn_rate)),
+            }
+        )
+        print(f"サブスクプラン '{name}' を開始（加入者 {subscribers}）")
+        return True
+
     def repay_loan(self, amount):
         """借入返済"""
         self._ensure_state()
@@ -202,30 +306,57 @@ class Company:
         self._ensure_state()
         revenue = 0.0
         mfg_cost = 0.0
+        remaining_capacity = max(0, int(self.capacity_units))
+        channel_bonus = 1.0 + sum(ch["demand_bonus"] for ch in self.sales_channels)
+        channel_running_cost = sum(ch["running_cost"] for ch in self.sales_channels)
 
         for p in self.products:
+            if remaining_capacity <= 0:
+                break
             effective_brand = p.brand_power * (1.0 + self.marketing_boost * 0.3)
-            demand_factor = (effective_brand * 1000) / max(1, p.price)
+            demand_factor = ((effective_brand * 1000) / max(1, p.price)) * channel_bonus
             import random
             team_bonus = 1.0 + min(0.5, self.team_size / 40)
+            planned_sales = int(random.uniform(0.5, 1.5) * 10 * demand_factor * team_bonus)
             sales_volume = min(
                 p.stock,
-                int(random.uniform(0.5, 1.5) * 10 * demand_factor * team_bonus),
+                remaining_capacity,
+                planned_sales,
             )
+            remaining_capacity -= sales_volume
 
             p.stock -= sales_volume
             p.total_sold += sales_volume
             revenue += sales_volume * p.price
             rnd_cost_reduction = min(0.35, self.rnd_level * 0.04)
-            effective_cost = max(1, int(p.cost * (1.0 - rnd_cost_reduction)))
+            auto_cost_reduction = min(0.25, self.automation_level * 0.05)
+            effective_cost = max(1, int(p.cost * (1.0 - rnd_cost_reduction - auto_cost_reduction)))
             mfg_cost += sales_volume * effective_cost
             p.brand_power += min(0.05, self.rnd_level * 0.004)
 
+        # 継続課金収益
+        subscription_revenue = 0.0
+        if self.subscription_plans:
+            avg_brand = (
+                sum(p.brand_power for p in self.products) / len(self.products)
+                if self.products
+                else 1.0
+            )
+            growth_rate = max(0.0, min(0.08, 0.01 * avg_brand))
+            for plan in self.subscription_plans:
+                subscription_revenue += plan["monthly_fee"] * plan["subscribers"]
+                plan["subscribers"] = max(
+                    0,
+                    int(plan["subscribers"] * (1 - plan["churn_rate"] + growth_rate)),
+                )
+        revenue += subscription_revenue
+
         base_fixed_cost = 5000
-        payroll_cost = self.team_size * self.salary_per_member
+        auto_payroll_reduction = min(0.4, self.automation_level * 0.06)
+        payroll_cost = self.team_size * self.salary_per_member * (1 - auto_payroll_reduction)
         debt_cost = self.tech_debt * 500
         loan_interest = self.loan_balance * self.loan_interest_rate
-        op_cost = base_fixed_cost + payroll_cost + debt_cost + loan_interest
+        op_cost = base_fixed_cost + payroll_cost + debt_cost + loan_interest + channel_running_cost
 
         total_accounting_cost = mfg_cost + op_cost
         profit = revenue - total_accounting_cost
@@ -243,6 +374,8 @@ class Company:
         self.fixed_cost = op_cost
         self.payroll_cost = payroll_cost
         self.interest_cost = loan_interest
+        self.channel_cost = channel_running_cost
+        self.subscription_revenue = subscription_revenue
         self.cash_reserve = max(self.cash_reserve, self.budget * 0.1)
         self.marketing_boost *= 0.65
 
@@ -251,9 +384,10 @@ class Company:
         print(
             f"固定費: JPY {int(op_cost):,}（基本: JPY {base_fixed_cost:,}, "
             f"人件費: JPY {int(payroll_cost):,}, 技術負債: JPY {int(debt_cost):,}, "
-            f"利息: JPY {int(loan_interest):,}）"
+            f"利息: JPY {int(loan_interest):,}, 販路費: JPY {int(channel_running_cost):,}）"
         )
         print(f"原価: JPY {int(mfg_cost):,}")
+        print(f"サブスク売上: JPY {int(subscription_revenue):,}")
         print(f"利益: JPY {int(profit):,}")
         print(f"資金の増減: JPY {int(cash_flow):,}")
 
@@ -264,7 +398,9 @@ class Company:
         self._ensure_state()
         inventory_value = sum(p.stock * p.cost for p in self.products)
         cash = self.budget
-        total_assets = cash + inventory_value
+        fixed_assets = self.fixed_assets
+        intangible_assets = self.intangible_assets
+        total_assets = cash + inventory_value + fixed_assets + intangible_assets
 
         liabilities = self.loan_balance
         equity = total_assets - liabilities
@@ -273,6 +409,8 @@ class Company:
             "assets": {
                 "cash": cash,
                 "inventory": inventory_value,
+                "fixed_assets": fixed_assets,
+                "intangible_assets": intangible_assets,
                 "total_assets": total_assets,
             },
             "liabilities": {
@@ -294,11 +432,13 @@ class Company:
         self._ensure_state()
         return {
             "revenue": self.revenue,
+            "subscription_revenue": self.subscription_revenue,
             "cogs": self.cogs,
             "gross_profit": self.gross_profit,
             "fixed_cost": self.fixed_cost,
             "payroll_cost": self.payroll_cost,
             "interest_cost": self.interest_cost,
+            "channel_cost": self.channel_cost,
             "operating_profit": self.profit,
         }
 
@@ -318,4 +458,7 @@ class Company:
             "チーム人数": self.team_size,
             "研究レベル": round(self.rnd_level, 2),
             "借入残高": self.loan_balance,
+            "キャパ": self.capacity_units,
+            "販路数": len(self.sales_channels),
+            "サブスク数": len(self.subscription_plans),
         }
