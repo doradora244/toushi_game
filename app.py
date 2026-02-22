@@ -592,17 +592,37 @@ with right_col:
 
     tutorial_steps = [
         {
-            "title": "1. 商品ラインを作る",
-            "body": "まずは商品を複数投入して、売上が発生する土台を作ります。",
-            "code": "company.launch_products_from_catalog(limit=4)",
+            "title": "1. 1つ商品を作る",
+            "body": "最初は1商品だけ作ります。まずは『作る』を体験します。",
+            "code": 'company.develop_product("コーヒー", 300, 900, 20)',
             "meaning": [
-                "`launch_products_from_catalog(...)` は複数商品をまとめて作る命令",
-                "最初の手作業を減らして、すぐ経営フェーズに入るために使う",
+                "`develop_product(name, cost, price, stock)` は商品登録の基本命令",
+                "300=原価, 900=販売価格, 20=初期在庫",
+                "まずは1行を実行して、結果を確認する習慣を作る",
             ],
         },
         {
-            "title": "2. 在庫運用を自動化する",
-            "body": "在庫切れを防ぐ補充ルールを先に作ると、以降の施策が安定します。",
+            "title": "2. 結果を確認する",
+            "body": "商品が作れたかをログで確認します。確認しながら進めるのが基本です。",
+            "code": 'print(status)\nfor p in company.products:\n    print(p.name, p.price, p.stock)',
+            "meaning": [
+                "`status` は会社の要約情報（資金・製品数など）",
+                "`for` で商品一覧を順番に表示できる",
+                "`print(...)` は動作確認のための最重要ツール",
+            ],
+        },
+        {
+            "title": "3. 在庫を手動補充する",
+            "body": "次に補充命令を覚えます。単発で在庫を増やします。",
+            "code": 'company.restock("コーヒー", 10)',
+            "meaning": [
+                "`restock(name, count)` は在庫補充の基本命令",
+                "商品名は既存名と一致させる必要がある",
+            ],
+        },
+        {
+            "title": "4. 在庫補充を自動化する",
+            "body": "在庫が少ない商品だけ補充するルールを作ります。",
             "code": 'for p in company.products:\n    if p.stock < 10:\n        company.restock(p.name, 20)',
             "meaning": [
                 "`for` は全商品を順番に見るための構文",
@@ -611,7 +631,25 @@ with right_col:
             ],
         },
         {
-            "title": "3. 組織と需要を伸ばす",
+            "title": "5. 複数商品に広げる",
+            "body": "慣れたら商品数を増やして運用対象を広げます。",
+            "code": "company.launch_products_from_catalog(limit=4)",
+            "meaning": [
+                "複数商品を一括で作れる時短コマンド",
+                "在庫ルールが複数商品に効くかを確認する",
+            ],
+        },
+        {
+            "title": "6. 関数でコードを整理する",
+            "body": "同じ処理を関数化して、読みやすく再利用しやすいコードにします。",
+            "code": 'def restock_if_low(product, threshold=10, amount=20):\n    if product.stock < threshold:\n        company.restock(product.name, amount)\n\nfor p in company.products:\n    restock_if_low(p)',
+            "meaning": [
+                "`def` で処理に名前をつけると再利用できる",
+                "長くなるコードほど関数化の効果が大きい",
+            ],
+        },
+        {
+            "title": "7. チームと需要を伸ばす",
             "body": "採用とマーケで成長速度を上げます。",
             "code": "company.hire_team(2)\ncompany.run_marketing_campaign(20000)",
             "meaning": [
@@ -620,7 +658,16 @@ with right_col:
             ],
         },
         {
-            "title": "4. 生産性へ投資する",
+            "title": "8. 価格を調整する",
+            "body": "価格改定で利益と販売数量のバランスを調整します。",
+            "code": 'company.set_product_price("コーヒー", 980)',
+            "meaning": [
+                "`set_product_price(...)` は利益率と売れ方を変える重要操作",
+                "変えた後は必ずPLで利益変化を確認する",
+            ],
+        },
+        {
+            "title": "9. 生産性へ投資する",
             "body": "研究・自動化・キャパ増強で中長期の体質を改善します。",
             "code": "company.invest_rnd(20000)\ncompany.invest_automation(30000)\ncompany.expand_capacity(20)",
             "meaning": [
@@ -630,17 +677,25 @@ with right_col:
             ],
         },
         {
-            "title": "5. 事業を拡張する",
-            "body": "販路開拓とサブスクで収益源を増やし、価格戦略を適用します。",
-            "code": 'company.open_sales_channel("ECモール", setup_cost=15000, demand_bonus=0.12)\ncompany.launch_subscription_plan("プレミアム会員", 500, 120)\ncompany.set_product_price("コーヒー", 980)',
+            "title": "10. 販路を開拓する",
+            "body": "売り先を増やして需要を広げます。",
+            "code": 'company.open_sales_channel("ECモール", setup_cost=15000, demand_bonus=0.12)',
             "meaning": [
                 "`open_sales_channel(...)` は販売チャネルを増やす",
-                "`launch_subscription_plan(...)` は継続収益を作る",
-                "`set_product_price(...)` は価格戦略の基本",
+                "初期費用と維持費があるので、実行後はコストを確認する",
             ],
         },
         {
-            "title": "6. 財務で経営判断する",
+            "title": "11. サブスクを始める",
+            "body": "単発売上に加えて継続収益を作ります。",
+            "code": 'company.launch_subscription_plan("プレミアム会員", 500, 120)',
+            "meaning": [
+                "`launch_subscription_plan(...)` は毎ターン売上を積み上げる",
+                "加入者数や利益推移を見て継続性を評価する",
+            ],
+        },
+        {
+            "title": "12. 財務で経営判断する",
             "body": "BS/PLを見て資金調達まで含めた意思決定に進みます。",
             "code": 'bs = company.get_balance_sheet()\npl = company.get_pl_statement()\nif bs["assets"]["cash"] < 50000:\n    company.take_loan(80000)\nelse:\n    company.repay_loan(20000)\nprint(pl)\nprint(bs)',
             "meaning": [
@@ -656,7 +711,7 @@ with right_col:
         0, min(st.session_state.tutorial_step_index, max_step)
     )
 
-    with st.expander("初心者向けステップガイド（1-6）", expanded=True):
+    with st.expander(f"初心者向けステップガイド（1-{len(tutorial_steps)}）", expanded=True):
         current = tutorial_steps[st.session_state.tutorial_step_index]
         st.write(f"**{current['title']}**")
         st.write(current["body"])
@@ -686,10 +741,12 @@ with right_col:
         st.markdown(
             """
 **初級（最初に使う）**
+- `company.develop_product(name, cost, price, stock)`
 - `company.launch_products_from_catalog(limit=4)`
 - `company.restock(name, count)`
 - `for p in company.products: ...`
 - `if p.stock < 10: ...`
+- `status`
 - `print(...)`
 
 **中級（成長を作る）**
