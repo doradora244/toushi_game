@@ -592,49 +592,34 @@ with right_col:
 
     tutorial_steps = [
         {
-            "title": "1. まずは1行だけ書く",
-            "body": "最初は短いコードでOK。1行実行して結果を見る習慣を作ります。",
-            "code": 'company.develop_product("コーヒー", 300, 900, 20)',
-        },
-        {
-            "title": "2. 商品を追加してみる",
-            "body": "カタログから複数商品を一括投入して、一気にゲームを動かせます。",
+            "title": "1. 商品ラインを作る",
+            "body": "まずは商品を複数投入して、売上が発生する土台を作ります。",
             "code": "company.launch_products_from_catalog(limit=4)",
         },
         {
-            "title": "3. 在庫補充を覚える",
-            "body": "作った商品は在庫を増やせます。商品名は正確に書いてください。",
-            "code": 'company.restock("コーヒー", 10)',
-        },
-        {
-            "title": "4. forで一覧を処理する",
-            "body": "複数の商品をまとめて扱う基本パターンです。",
-            "code": 'for p in company.products:\n    print(p.name, p.stock)',
-        },
-        {
-            "title": "5. ifで条件分岐する",
-            "body": "在庫が少ない商品だけ補充する、のような自動化ができます。",
+            "title": "2. 在庫運用を自動化する",
+            "body": "在庫切れを防ぐ補充ルールを先に作ると、以降の施策が安定します。",
             "code": 'for p in company.products:\n    if p.stock < 10:\n        company.restock(p.name, 20)',
         },
         {
-            "title": "6. 関数にまとめる",
-            "body": "同じ処理は関数化して再利用すると読みやすくなります。",
-            "code": 'def restock_if_low(product, threshold=10, amount=20):\n    if product.stock < threshold:\n        company.restock(product.name, amount)\n\nfor p in company.products:\n    restock_if_low(p)',
-        },
-        {
-            "title": "7. 採用とマーケを試す",
-            "body": "売るだけでなく、採用とマーケで成長速度を上げられます。",
+            "title": "3. 組織と需要を伸ばす",
+            "body": "採用とマーケで成長速度を上げます。",
             "code": "company.hire_team(2)\ncompany.run_marketing_campaign(20000)",
         },
         {
-            "title": "8. 研究開発で体質を改善する",
-            "body": "R&D投資は中長期で原価改善とブランド強化に効きます。",
-            "code": "company.invest_rnd(30000)\nprint(status)",
+            "title": "4. 生産性へ投資する",
+            "body": "研究・自動化・キャパ増強で中長期の体質を改善します。",
+            "code": "company.invest_rnd(20000)\ncompany.invest_automation(30000)\ncompany.expand_capacity(20)",
         },
         {
-            "title": "9. 資金調達も戦略に入れる",
-            "body": "不足時は借入、余裕時は返済のルール化で経営が安定します。",
-            "code": 'if status["資金"] < 50000:\n    company.take_loan(80000)\nelse:\n    company.repay_loan(20000)',
+            "title": "5. 事業を拡張する",
+            "body": "販路開拓とサブスクで収益源を増やし、価格戦略を適用します。",
+            "code": 'company.open_sales_channel("ECモール", setup_cost=15000, demand_bonus=0.12)\ncompany.launch_subscription_plan("プレミアム会員", 500, 120)\ncompany.set_product_price("コーヒー", 980)',
+        },
+        {
+            "title": "6. 財務で経営判断する",
+            "body": "BS/PLを見て資金調達まで含めた意思決定に進みます。",
+            "code": 'bs = company.get_balance_sheet()\npl = company.get_pl_statement()\nif bs["assets"]["cash"] < 50000:\n    company.take_loan(80000)\nelse:\n    company.repay_loan(20000)\nprint(pl)\nprint(bs)',
         },
     ]
 
@@ -643,7 +628,7 @@ with right_col:
         0, min(st.session_state.tutorial_step_index, max_step)
     )
 
-    with st.expander("実装ステップガイド（1-9）", expanded=True):
+    with st.expander("実装ステップガイド（1-6）", expanded=True):
         current = tutorial_steps[st.session_state.tutorial_step_index]
         st.write(f"**{current['title']}**")
         st.write(current["body"])
