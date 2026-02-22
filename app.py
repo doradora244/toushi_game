@@ -110,6 +110,31 @@ def show_financial_history(history):
     st.table(df_display.tail(5))
 
 
+def _yen(value: float) -> str:
+    return f"¥{int(value):,}"
+
+
+def _render_box(title: str, color: str, rows: List[tuple]):
+    body = "".join(
+        [
+            (
+                f"<tr><td style='padding:4px 8px'>{label}</td>"
+                f"<td style='padding:4px 8px; text-align:right; font-weight:700'>{amount}</td></tr>"
+            )
+            for label, amount in rows
+        ]
+    )
+    st.markdown(
+        f"""
+<div style="border:2px solid {color}; border-radius:10px; padding:10px; margin-bottom:8px; background:#ffffff;">
+  <div style="font-weight:700; color:{color}; margin-bottom:6px;">{title}</div>
+  <table style="width:100%; border-collapse:collapse;">{body}</table>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def show_financial_dashboard(history):
     if not history:
         return
@@ -135,34 +160,64 @@ def show_financial_dashboard(history):
     with left_col:
         latest = df.iloc[-1]
         st.caption("PLマップ（最新ターン）")
-        pl1, pl2, pl3, pl4, pl5 = st.columns(5)
         revenue_v = int(latest["revenue"])
         cogs_v = int(latest["cogs"])
         gross_v = revenue_v - cogs_v
-        fixed_v = int(latest["cost"] - latest["cogs"])
+        fixed_v = int(max(0, latest["cost"] - latest["cogs"]))
         op_v = int(latest["profit"])
-        pl1.metric("売上", f"¥{revenue_v:,}")
-        pl2.metric("売上原価", f"¥{cogs_v:,}")
-        pl3.metric("粗利益", f"¥{gross_v:,}")
-        pl4.metric("固定費", f"¥{fixed_v:,}")
-        pl5.metric("営業利益", f"¥{op_v:,}")
+        interest_v = int(latest["interest_cost"]) if "interest_cost" in latest else 0
+        sga_v = max(0, fixed_v - interest_v)
+
+        pl_l, pl_eq, pl_r = st.columns([1.2, 0.2, 1.2])
+        with pl_l:
+            _render_box(
+                "営業活動ブロック",
+                "#2e7d32",
+                [
+                    ("売上", _yen(revenue_v)),
+                    ("売上原価", _yen(cogs_v)),
+                    ("売上総利益", _yen(gross_v)),
+                    ("販管費", _yen(sga_v)),
+                    ("営業利益", _yen(gross_v - sga_v)),
+                ],
+            )
+        with pl_eq:
+            st.markdown("### →")
+        with pl_r:
+            _render_box(
+                "財務・最終利益ブロック",
+                "#1565c0",
+                [
+                    ("営業利益", _yen(gross_v - sga_v)),
+                    ("営業外費用(利息)", _yen(interest_v)),
+                    ("経常利益(簡易)", _yen((gross_v - sga_v) - interest_v)),
+                    ("当期純利益(簡易)", _yen(op_v)),
+                ],
+            )
 
         st.caption("BSマップ（資産 = 負債 + 純資産）")
-        bs_assets, bs_eq, bs_right2 = st.columns([1.2, 0.3, 1.2])
+        bs_assets, bs_eq, bs_right2 = st.columns([1.2, 0.2, 1.2])
         with bs_assets:
-            st.markdown("**資産**")
-            st.metric("現金", f"¥{int(latest['money_after']):,}")
-            st.metric("棚卸資産", f"¥{int(latest['inventory']):,}")
-            st.metric("資産合計", f"¥{int(latest['assets']):,}")
+            _render_box(
+                "資産の部",
+                "#2e7d32",
+                [
+                    ("流動資産: 現金", _yen(latest["money_after"])),
+                    ("流動資産: 棚卸資産", _yen(latest["inventory"])),
+                    ("資産合計", _yen(latest["assets"])),
+                ],
+            )
         with bs_eq:
             st.markdown("### =")
         with bs_right2:
-            st.markdown("**負債 + 純資産**")
-            st.metric("負債（借入）", f"¥{int(latest['loan_balance']):,}")
-            st.metric("純資産", f"¥{int(latest['equity']):,}")
-            st.metric(
-                "合計",
-                f"¥{int(latest['loan_balance'] + latest['equity']):,}",
+            _render_box(
+                "負債・純資産の部",
+                "#6a1b9a",
+                [
+                    ("負債: 借入金", _yen(latest["loan_balance"])),
+                    ("純資産", _yen(latest["equity"])),
+                    ("負債・純資産合計", _yen(latest["loan_balance"] + latest["equity"])),
+                ],
             )
 
         st.caption("PL推移（棒グラフ）")
@@ -228,9 +283,55 @@ def show_financial_statements(company):
 
     bs_check = int(bs["check"]["assets_minus_liabilities_equity"])
     st.write("**PL（損益計算書: 直近ターン）**")
-    st.table(pl_df)
+    pl_a, pl_b = st.columns(2)
+    with pl_a:
+        _render_box(
+            "PL: 営業活動",
+            "#2e7d32",
+            [
+                ("売上", _yen(pl["revenue"])),
+                ("売上原価", _yen(pl["cogs"])),
+                ("売上総利益", _yen(pl["gross_profit"])),
+                ("販管費", _yen(max(0, pl["fixed_cost"] - pl["interest_cost"]))),
+                ("営業利益", _yen(pl["gross_profit"] - max(0, pl["fixed_cost"] - pl["interest_cost"]))),
+            ],
+        )
+    with pl_b:
+        _render_box(
+            "PL: 営業外/最終",
+            "#1565c0",
+            [
+                ("営業外費用(利息)", _yen(pl["interest_cost"])),
+                ("経常利益(簡易)", _yen((pl["gross_profit"] - max(0, pl["fixed_cost"] - pl["interest_cost"])) - pl["interest_cost"])),
+                ("当期純利益(簡易)", _yen(pl["operating_profit"])),
+            ],
+        )
     st.write("**BS（貸借対照表: 現在）**")
-    st.table(bs_df)
+    bs_a, bs_b = st.columns(2)
+    with bs_a:
+        _render_box(
+            "BS: 資産の部",
+            "#2e7d32",
+            [
+                ("現金・預金", _yen(bs["assets"]["cash"])),
+                ("棚卸資産", _yen(bs["assets"]["inventory"])),
+                ("資産合計", _yen(bs["assets"]["total_assets"])),
+            ],
+        )
+    with bs_b:
+        _render_box(
+            "BS: 負債・純資産の部",
+            "#6a1b9a",
+            [
+                ("借入金", _yen(bs["liabilities"]["loan_balance"])),
+                ("負債合計", _yen(bs["liabilities"]["total_liabilities"])),
+                ("純資産合計", _yen(bs["equity"]["total_equity"])),
+                ("負債+純資産", _yen(bs["liabilities"]["total_liabilities"] + bs["equity"]["total_equity"])),
+            ],
+        )
+    with st.expander("PL/BS 明細テーブル", expanded=False):
+        st.table(pl_df)
+        st.table(bs_df)
     st.caption(f"検算: 資産 - 負債 - 純資産 = {bs_check}")
 
 # ============================================================
