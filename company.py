@@ -23,17 +23,9 @@ class Company:
         self.profit = 0.0
 
     def _get_initial_code(self):
-        """初心者向けの初期コードテンプレート"""
-        return (
-            "# ここに Python コードを書きます\n"
-            "# 例1: 製品を作る\n"
-            "company.develop_product(\"コーヒー\", 300, 900, 20)\n\n"
-            "# 例2: 在庫を補充する\n"
-            "# company.restock(\"コーヒー\", 10)\n\n"
-            "# 例3: すべての製品を順番に見る\n"
-            "# for p in company.products:\n"
-            "#     print(p.name, p.stock)\n"
-        )
+        """?????????????????"""
+        return ""
+
 
     def develop_product(self, name, cost, price, initial_stock=10):
         """新しい製品を作る"""

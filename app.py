@@ -261,6 +261,16 @@ with right_col:
             """
         )
 
+    with st.expander("???????????????", expanded=True):
+        st.markdown(
+            """
+1. ???1??????????  
+2. ?????????????  
+3. ?????????????????  
+4. ?????? if / for ?????????
+            """
+        )
+
     mission = get_mission(st.session_state.current_mission_id)
     st.subheader(f"🎯 ミッション: {mission['title']}")
 
@@ -268,11 +278,20 @@ with right_col:
         st.write(mission["description"])
         st.write(f"**目標:** {mission['goal']}")
 
+    if mission.get("steps"):
+        with st.expander("やること手順", expanded=True):
+            for i, step in enumerate(mission["steps"], start=1):
+                st.write(f"{i}. {step}")
+
+    if mission.get("sample_code"):
+        with st.expander("サンプルコード", expanded=True):
+            st.code(mission["sample_code"], language="python")
+
     with st.expander("開発のヒント", expanded=False):
         for hint in mission["hints"]:
             st.markdown(hint)
 
-    with st.expander("はじめての人向け：コードの意味", expanded=True):
+    with st.expander("はじめての人向け：コードの意味", expanded=False):
         st.markdown(
             """
 **1) 製品を作る**
@@ -296,8 +315,39 @@ for p in company.products:
             """
         )
 
-    st.write("**コード入力**")
-    if st_ace:
+    with st.expander("???????", expanded=True):
+        st.markdown(
+            """
+**1) ?????1???**
+            """
+        )
+        if mission.get("sample_code"):
+            st.code(mission["sample_code"], language="python")
+        else:
+            st.code('company.develop_product("????", 300, 900, 20)', language="python")
+
+        st.markdown(
+            """
+**2) if ???????**
+```python
+for p in company.products:
+    if p.stock < 10:
+        company.restock(p.name, 20)
+```
+
+**3) ???????????**
+```python
+def restock_if_low(product, threshold=10, amount=20):
+    if product.stock < threshold:
+        company.restock(product.name, amount)
+
+for p in company.products:
+    restock_if_low(p)
+```
+            """
+        )
+
+    st.write("**??????????????OK?**")
         user_code = st_ace(
             value=game.company.current_code,
             language="python",
