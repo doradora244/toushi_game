@@ -28,6 +28,11 @@ class Company:
         self.revenue = 0.0
         self.cost = 0.0
         self.profit = 0.0
+        self.cogs = 0.0
+        self.gross_profit = 0.0
+        self.fixed_cost = 0.0
+        self.payroll_cost = 0.0
+        self.interest_cost = 0.0
 
     def _get_initial_code(self):
         """?????????????????"""
@@ -43,6 +48,11 @@ class Company:
             "cash_reserve": 0.0,
             "loan_balance": 0.0,
             "loan_interest_rate": 0.01,
+            "cogs": 0.0,
+            "gross_profit": 0.0,
+            "fixed_cost": 0.0,
+            "payroll_cost": 0.0,
+            "interest_cost": 0.0,
         }
         for key, value in defaults.items():
             if not hasattr(self, key):
@@ -219,6 +229,7 @@ class Company:
 
         total_accounting_cost = mfg_cost + op_cost
         profit = revenue - total_accounting_cost
+        gross_profit = revenue - mfg_cost
 
         # キャッシュは固定費のみ控除する簡易モデル
         cash_flow = revenue - op_cost
@@ -227,6 +238,11 @@ class Company:
         self.revenue = revenue
         self.cost = total_accounting_cost
         self.profit = profit
+        self.cogs = mfg_cost
+        self.gross_profit = gross_profit
+        self.fixed_cost = op_cost
+        self.payroll_cost = payroll_cost
+        self.interest_cost = loan_interest
         self.cash_reserve = max(self.cash_reserve, self.budget * 0.1)
         self.marketing_boost *= 0.65
 
@@ -242,6 +258,49 @@ class Company:
         print(f"資金の増減: JPY {int(cash_flow):,}")
 
         return profit
+
+    def get_balance_sheet(self):
+        """簡易BS（貸借対照表）を返す"""
+        self._ensure_state()
+        inventory_value = sum(p.stock * p.cost for p in self.products)
+        cash = self.budget
+        total_assets = cash + inventory_value
+
+        liabilities = self.loan_balance
+        equity = total_assets - liabilities
+
+        return {
+            "assets": {
+                "cash": cash,
+                "inventory": inventory_value,
+                "total_assets": total_assets,
+            },
+            "liabilities": {
+                "loan_balance": liabilities,
+                "total_liabilities": liabilities,
+            },
+            "equity": {
+                "total_equity": equity,
+            },
+            "check": {
+                "assets_minus_liabilities_equity": (
+                    total_assets - liabilities - equity
+                )
+            },
+        }
+
+    def get_pl_statement(self):
+        """直近ターンの簡易PL（損益計算書）を返す"""
+        self._ensure_state()
+        return {
+            "revenue": self.revenue,
+            "cogs": self.cogs,
+            "gross_profit": self.gross_profit,
+            "fixed_cost": self.fixed_cost,
+            "payroll_cost": self.payroll_cost,
+            "interest_cost": self.interest_cost,
+            "operating_profit": self.profit,
+        }
 
     def get_summary(self):
         """画面表示用の要約"""

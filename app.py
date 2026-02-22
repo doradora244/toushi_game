@@ -77,15 +77,76 @@ def show_financial_history(history):
         return
     st.write("**直近の経営データ**")
     df = pd.DataFrame(history)
+    for col in [
+        "cogs",
+        "gross_profit",
+        "fixed_cost",
+        "payroll_cost",
+        "interest_cost",
+        "assets",
+        "inventory",
+        "loan_balance",
+        "equity",
+    ]:
+        if col not in df.columns:
+            df[col] = 0
     df_display = df.rename(columns={
         "tick": "ターン",
         "revenue": "売上",
+        "cogs": "売上原価",
+        "gross_profit": "粗利益",
         "cost": "コスト",
+        "fixed_cost": "固定費",
+        "payroll_cost": "人件費",
+        "interest_cost": "支払利息",
         "profit": "利益",
         "money_after": "資金",
         "stock_price": "株価",
+        "assets": "総資産",
+        "inventory": "棚卸資産",
+        "loan_balance": "負債(借入)",
+        "equity": "純資産",
     })
     st.table(df_display.tail(5))
+
+
+def show_financial_statements(company):
+    pl = company.get_pl_statement()
+    bs = company.get_balance_sheet()
+
+    pl_df = pd.DataFrame(
+        [
+            {"項目": "売上", "金額": int(pl["revenue"])},
+            {"項目": "売上原価", "金額": int(pl["cogs"])},
+            {"項目": "粗利益", "金額": int(pl["gross_profit"])},
+            {"項目": "固定費(合計)", "金額": int(pl["fixed_cost"])},
+            {"項目": "人件費", "金額": int(pl["payroll_cost"])},
+            {"項目": "支払利息", "金額": int(pl["interest_cost"])},
+            {"項目": "営業利益", "金額": int(pl["operating_profit"])},
+        ]
+    )
+
+    bs_df = pd.DataFrame(
+        [
+            {"区分": "資産", "項目": "現金・預金", "金額": int(bs["assets"]["cash"])},
+            {"区分": "資産", "項目": "棚卸資産", "金額": int(bs["assets"]["inventory"])},
+            {"区分": "資産", "項目": "資産合計", "金額": int(bs["assets"]["total_assets"])},
+            {"区分": "負債", "項目": "借入金", "金額": int(bs["liabilities"]["loan_balance"])},
+            {
+                "区分": "負債",
+                "項目": "負債合計",
+                "金額": int(bs["liabilities"]["total_liabilities"]),
+            },
+            {"区分": "純資産", "項目": "純資産合計", "金額": int(bs["equity"]["total_equity"])},
+        ]
+    )
+
+    bs_check = int(bs["check"]["assets_minus_liabilities_equity"])
+    st.write("**PL（損益計算書: 直近ターン）**")
+    st.table(pl_df)
+    st.write("**BS（貸借対照表: 現在）**")
+    st.table(bs_df)
+    st.caption(f"検算: 資産 - 負債 - 純資産 = {bs_check}")
 
 # ============================================================
 # Beginner-friendly helpers
@@ -259,6 +320,8 @@ show_status_cards(game)
 if len(game.financial_history) > 1:
     history_df = pd.DataFrame(game.financial_history)
     st.line_chart(history_df.set_index("tick")[["money_after", "stock_price"]])
+    if "equity" in history_df.columns and "loan_balance" in history_df.columns:
+        st.line_chart(history_df.set_index("tick")[["equity", "loan_balance"]])
 
 st.divider()
 
@@ -266,6 +329,8 @@ left_col, right_col = st.columns([1, 2])
 
 with left_col:
     show_company_detail(game.company)
+    with st.expander("財務諸表（BS / PL）", expanded=True):
+        show_financial_statements(game.company)
     st.divider()
     st.info("ここに書いたPythonコードが会社の行動になります。")
 
@@ -284,6 +349,7 @@ with right_col:
 - `company.run_marketing_campaign(budget)` で需要強化
 - `company.invest_rnd(budget)` で研究投資
 - `company.take_loan(amount)` / `company.repay_loan(amount)` で資金調達
+- `company.get_balance_sheet()` / `company.get_pl_statement()` で財務取得
 - `import json` など標準ライブラリのインポートも利用可能
 - `company.products` で商品一覧を取得
 - `for p in company.products:` で商品を順番に処理

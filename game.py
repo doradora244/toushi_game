@@ -29,8 +29,17 @@ class Game:
             "revenue": 0,
             "cost": 0,
             "profit": 0,
+            "cogs": 0,
+            "gross_profit": 0,
+            "fixed_cost": 0,
+            "payroll_cost": 0,
+            "interest_cost": 0,
             "money_after": self.company.budget,
-            "stock_price": self.company.stock_price
+            "stock_price": self.company.stock_price,
+            "inventory": 0,
+            "loan_balance": self.company.loan_balance,
+            "equity": self.company.budget,
+            "assets": self.company.budget,
         }]
 
     def get_time_label(self):
@@ -53,14 +62,25 @@ class Game:
         stock_change = new_price - old_price
 
         # 3. 履歴に保存
+        bs = self.company.get_balance_sheet()
+        pl = self.company.get_pl_statement()
         result = {
             "tick":         self.elapsed_ticks,
             "revenue":      self.company.revenue,
             "cost":         self.company.cost,
             "profit":       profit,
+            "cogs":         pl["cogs"],
+            "gross_profit": pl["gross_profit"],
+            "fixed_cost":   pl["fixed_cost"],
+            "payroll_cost": pl["payroll_cost"],
+            "interest_cost": pl["interest_cost"],
             "money_after":  self.company.budget,
             "stock_price":  new_price,
-            "stock_change": stock_change
+            "stock_change": stock_change,
+            "inventory":    bs["assets"]["inventory"],
+            "loan_balance": bs["liabilities"]["loan_balance"],
+            "equity":       bs["equity"]["total_equity"],
+            "assets":       bs["assets"]["total_assets"],
         }
         self.financial_history.append(result)
 
