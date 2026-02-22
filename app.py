@@ -110,6 +110,70 @@ def show_financial_history(history):
     st.table(df_display.tail(5))
 
 
+def show_financial_dashboard(history):
+    if not history:
+        return
+
+    df = pd.DataFrame(history).copy()
+    for col in [
+        "revenue",
+        "cogs",
+        "profit",
+        "money_after",
+        "assets",
+        "inventory",
+        "loan_balance",
+        "equity",
+        "stock_price",
+    ]:
+        if col not in df.columns:
+            df[col] = 0
+
+    st.write("**財務ダッシュボード（PL / BS / 株価）**")
+    left_col, right_col = st.columns([2, 1])
+
+    with left_col:
+        st.caption("PLトレンド（売上・原価・営業利益）")
+        pl_chart_df = (
+            df.set_index("tick")[["revenue", "cogs", "profit"]]
+            .rename(columns={"revenue": "売上", "cogs": "売上原価", "profit": "営業利益"})
+        )
+        st.line_chart(pl_chart_df)
+
+        st.caption("BSトレンド（資産・負債・純資産・現金）")
+        bs_chart_df = (
+            df.set_index("tick")[["assets", "loan_balance", "equity", "money_after"]]
+            .rename(
+                columns={
+                    "assets": "総資産",
+                    "loan_balance": "負債(借入)",
+                    "equity": "純資産",
+                    "money_after": "現金",
+                }
+            )
+        )
+        st.line_chart(bs_chart_df)
+
+        latest = df.iloc[-1]
+        st.caption("BSマップ（最新）")
+        bs_map_df = pd.DataFrame(
+            [
+                {"区分": "資産", "項目": "現金", "金額": int(latest["money_after"])},
+                {"区分": "資産", "項目": "棚卸資産", "金額": int(latest["inventory"])},
+                {"区分": "負債", "項目": "借入金", "金額": int(latest["loan_balance"])},
+                {"区分": "純資産", "項目": "純資産", "金額": int(latest["equity"])},
+            ]
+        )
+        st.table(bs_map_df)
+
+    with right_col:
+        st.caption("株価チャート")
+        stock_chart_df = df.set_index("tick")[["stock_price"]].rename(
+            columns={"stock_price": "株価"}
+        )
+        st.line_chart(stock_chart_df)
+
+
 def show_financial_statements(company):
     pl = company.get_pl_statement()
     bs = company.get_balance_sheet()
@@ -318,10 +382,7 @@ if next_mission != st.session_state.current_mission_id:
 show_status_cards(game)
 
 if len(game.financial_history) > 1:
-    history_df = pd.DataFrame(game.financial_history)
-    st.line_chart(history_df.set_index("tick")[["money_after", "stock_price"]])
-    if "equity" in history_df.columns and "loan_balance" in history_df.columns:
-        st.line_chart(history_df.set_index("tick")[["equity", "loan_balance"]])
+    show_financial_dashboard(game.financial_history)
 
 st.divider()
 
