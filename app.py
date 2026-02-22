@@ -177,6 +177,9 @@ def init_session():
     if "tick_interval" not in st.session_state:
         st.session_state.tick_interval = 2.0
 
+    if "tutorial_step_index" not in st.session_state:
+        st.session_state.tutorial_step_index = 0
+
 # ============================================================
 # メイン
 # ============================================================
@@ -249,39 +252,98 @@ with left_col:
     st.info("ここに書いたPythonコードが会社の行動になります。")
 
 with right_col:
-    with st.expander("???????????????????", expanded=False):
+    with st.expander("初心者ガイド: 何ができる？", expanded=False):
         st.markdown(
             """
-- **???? / ??**: ?????????????????
-- **????**: ???????????????
+- **目的 / ゴール**: Pythonを書いて会社を成長させる
+- **特徴**: コードを自由に書いて実行し、結果をすぐ確認できる
 
-**????????????**
-- `company.develop_product(name, cost, price, stock)` ????????
-- `company.restock(name, count)` ???????
-- `company.products` ??????
-- `for p in company.products:` ????????????
-- `p.name` / `p.cost` / `p.price` / `p.stock` / `p.total_sold` / `p.brand_power`
-- `status` ?????????????
-- `print(...)` ?????????
+**この画面で使える主なコード**
+- `company.develop_product(name, cost, price, stock)` で新商品を開発
+- `company.restock(name, count)` で在庫を補充
+- `company.products` で商品一覧を取得
+- `for p in company.products:` で商品を順番に処理
+- `p.name` / `p.cost` / `p.price` / `p.stock` / `p.total_sold` / `p.brand_power` を参照
+- `status` で会社の状態を確認
+- `print(...)` で実行結果を出力
             """
         )
 
-    with st.expander("???????????????", expanded=True):
-        st.markdown(
-            """
-1. **1????????**???????
-2. **??????**?????????????
-3. **????????**??????????
-4. **for ???**???????????
-5. **if ???**?????????????
-6. **???????**?????????
-7. **??????????**?????????
-8. **???????**??????????
-9. **?????????**???????????
+    tutorial_steps = [
+        {
+            "title": "1. まずは1行だけ書く",
+            "body": "最初は短いコードでOK。1行実行して結果を見る習慣を作ります。",
+            "code": 'company.develop_product("コーヒー", 300, 900, 20)',
+        },
+        {
+            "title": "2. 商品を追加してみる",
+            "body": "商品名・原価・販売価格・初期在庫の4つを指定して開発します。",
+            "code": 'company.develop_product("パン", 120, 360, 30)',
+        },
+        {
+            "title": "3. 在庫補充を覚える",
+            "body": "作った商品は在庫を増やせます。商品名は正確に書いてください。",
+            "code": 'company.restock("コーヒー", 10)',
+        },
+        {
+            "title": "4. forで一覧を処理する",
+            "body": "複数の商品をまとめて扱う基本パターンです。",
+            "code": 'for p in company.products:\n    print(p.name, p.stock)',
+        },
+        {
+            "title": "5. ifで条件分岐する",
+            "body": "在庫が少ない商品だけ補充する、のような自動化ができます。",
+            "code": 'for p in company.products:\n    if p.stock < 10:\n        company.restock(p.name, 20)',
+        },
+        {
+            "title": "6. 関数にまとめる",
+            "body": "同じ処理は関数化して再利用すると読みやすくなります。",
+            "code": 'def restock_if_low(product, threshold=10, amount=20):\n    if product.stock < threshold:\n        company.restock(product.name, amount)\n\nfor p in company.products:\n    restock_if_low(p)',
+        },
+        {
+            "title": "7. 状態をprintで確認する",
+            "body": "想定通り動いたか、必ずログで確認しましょう。",
+            "code": 'print("products:", len(company.products))\nfor p in company.products:\n    print(p.name, p.stock, p.total_sold)',
+        },
+        {
+            "title": "8. 小さく改善していく",
+            "body": "一気に長いコードを書くより、1機能ずつ追加した方が失敗しにくいです。",
+            "code": '# まずは在庫補充だけ\nfor p in company.products:\n    if p.stock < 5:\n        company.restock(p.name, 10)',
+        },
+        {
+            "title": "9. 自分ルールを作る",
+            "body": "価格や在庫条件を自分で決めて、戦略コードに育てていきます。",
+            "code": 'for p in company.products:\n    if p.brand_power > 1.2 and p.stock < 15:\n        company.restock(p.name, 15)',
+        },
+    ]
 
-? ???????????????????????OK?
-            """
-        )
+    max_step = len(tutorial_steps) - 1
+    st.session_state.tutorial_step_index = max(
+        0, min(st.session_state.tutorial_step_index, max_step)
+    )
+
+    with st.expander("実装ステップガイド（1-9）", expanded=True):
+        current = tutorial_steps[st.session_state.tutorial_step_index]
+        st.write(f"**{current['title']}**")
+        st.write(current["body"])
+        st.code(current["code"], language="python")
+        nav_col1, nav_col2, nav_col3 = st.columns([1, 2, 1])
+        with nav_col1:
+            if st.button("前へ", use_container_width=True):
+                st.session_state.tutorial_step_index = max(
+                    0, st.session_state.tutorial_step_index - 1
+                )
+                st.rerun()
+        with nav_col2:
+            st.caption(
+                f"ステップ {st.session_state.tutorial_step_index + 1} / {len(tutorial_steps)}"
+            )
+        with nav_col3:
+            if st.button("次へ", use_container_width=True):
+                st.session_state.tutorial_step_index = min(
+                    max_step, st.session_state.tutorial_step_index + 1
+                )
+                st.rerun()
 
     mission = get_mission(st.session_state.current_mission_id)
     st.subheader(f"🎯 ミッション: {mission['title']}")
