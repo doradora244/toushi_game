@@ -133,38 +133,59 @@ def show_financial_dashboard(history):
     left_col, right_col = st.columns([2, 1])
 
     with left_col:
-        st.caption("PLトレンド（売上・原価・営業利益）")
-        pl_chart_df = (
+        latest = df.iloc[-1]
+        st.caption("PLマップ（最新ターン）")
+        pl1, pl2, pl3, pl4, pl5 = st.columns(5)
+        revenue_v = int(latest["revenue"])
+        cogs_v = int(latest["cogs"])
+        gross_v = revenue_v - cogs_v
+        fixed_v = int(latest["cost"] - latest["cogs"])
+        op_v = int(latest["profit"])
+        pl1.metric("売上", f"¥{revenue_v:,}")
+        pl2.metric("売上原価", f"¥{cogs_v:,}")
+        pl3.metric("粗利益", f"¥{gross_v:,}")
+        pl4.metric("固定費", f"¥{fixed_v:,}")
+        pl5.metric("営業利益", f"¥{op_v:,}")
+
+        st.caption("BSマップ（資産 = 負債 + 純資産）")
+        bs_assets, bs_eq, bs_right2 = st.columns([1.2, 0.3, 1.2])
+        with bs_assets:
+            st.markdown("**資産**")
+            st.metric("現金", f"¥{int(latest['money_after']):,}")
+            st.metric("棚卸資産", f"¥{int(latest['inventory']):,}")
+            st.metric("資産合計", f"¥{int(latest['assets']):,}")
+        with bs_eq:
+            st.markdown("### =")
+        with bs_right2:
+            st.markdown("**負債 + 純資産**")
+            st.metric("負債（借入）", f"¥{int(latest['loan_balance']):,}")
+            st.metric("純資産", f"¥{int(latest['equity']):,}")
+            st.metric(
+                "合計",
+                f"¥{int(latest['loan_balance'] + latest['equity']):,}",
+            )
+
+        st.caption("PL推移（棒グラフ）")
+        pl_bar_df = (
             df.set_index("tick")[["revenue", "cogs", "profit"]]
             .rename(columns={"revenue": "売上", "cogs": "売上原価", "profit": "営業利益"})
+            .tail(12)
         )
-        st.line_chart(pl_chart_df)
+        st.bar_chart(pl_bar_df)
 
-        st.caption("BSトレンド（資産・負債・純資産・現金）")
-        bs_chart_df = (
-            df.set_index("tick")[["assets", "loan_balance", "equity", "money_after"]]
+        st.caption("BS推移（棒グラフ）")
+        bs_bar_df = (
+            df.set_index("tick")[["assets", "loan_balance", "equity"]]
             .rename(
                 columns={
                     "assets": "総資産",
-                    "loan_balance": "負債(借入)",
+                    "loan_balance": "負債",
                     "equity": "純資産",
-                    "money_after": "現金",
                 }
             )
+            .tail(12)
         )
-        st.line_chart(bs_chart_df)
-
-        latest = df.iloc[-1]
-        st.caption("BSマップ（最新）")
-        bs_map_df = pd.DataFrame(
-            [
-                {"区分": "資産", "項目": "現金", "金額": int(latest["money_after"])},
-                {"区分": "資産", "項目": "棚卸資産", "金額": int(latest["inventory"])},
-                {"区分": "負債", "項目": "借入金", "金額": int(latest["loan_balance"])},
-                {"区分": "純資産", "項目": "純資産", "金額": int(latest["equity"])},
-            ]
-        )
-        st.table(bs_map_df)
+        st.bar_chart(bs_bar_df)
 
     with right_col:
         st.caption("株価チャート")
