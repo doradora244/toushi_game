@@ -261,13 +261,13 @@ with right_col:
             """
         )
 
-    with st.expander("???????????????", expanded=True):
+    with st.expander("はじめての流れ（迷ったらここ）", expanded=True):
         st.markdown(
             """
-1. ???1??????????  
-2. ?????????????  
-3. ?????????????????  
-4. ?????? if / for ?????????
+1. まずは1行だけ書いて実行する  
+2. 画面に出る「変更点」を読む  
+3. 数字を少し変えて、何が変わるか試す  
+4. 慣れてきたら if / for を使って自動化する
             """
         )
 
@@ -315,27 +315,27 @@ for p in company.products:
             """
         )
 
-    with st.expander("???????", expanded=True):
+    with st.expander("書き方テンプレ", expanded=True):
         st.markdown(
             """
-**1) ?????1???**
+**1) 最初はこの1行だけ**
             """
         )
         if mission.get("sample_code"):
             st.code(mission["sample_code"], language="python")
         else:
-            st.code('company.develop_product("????", 300, 900, 20)', language="python")
+            st.code('company.develop_product("コーヒー", 300, 900, 20)', language="python")
 
         st.markdown(
             """
-**2) if ???????**
+**2) if を使うテンプレ**
 ```python
 for p in company.products:
     if p.stock < 10:
         company.restock(p.name, 20)
 ```
 
-**3) ???????????**
+**3) 関数にまとめるテンプレ**
 ```python
 def restock_if_low(product, threshold=10, amount=20):
     if product.stock < threshold:
@@ -347,7 +347,8 @@ for p in company.products:
             """
         )
 
-    st.write("**??????????????OK?**")
+    st.write("**コード入力（空欄のまま書いてOK）**")
+    if st_ace:
         user_code = st_ace(
             value=game.company.current_code,
             language="python",
