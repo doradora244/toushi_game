@@ -50,6 +50,9 @@ def show_company_detail(company):
         st.write("**会社の状態**")
         st.write(f"- 製品数: {len(company.products)}")
         st.write(f"- 技術負債: {int(company.tech_debt)} pt")
+        st.write(f"- チーム人数: {int(getattr(company, 'team_size', 3))} 名")
+        st.write(f"- 研究レベル: {float(getattr(company, 'rnd_level', 0.0)):.2f}")
+        st.write(f"- 借入残高: ¥{int(getattr(company, 'loan_balance', 0.0)):,}")
         total_stock = sum(p.stock for p in company.products)
         total_sold = sum(p.total_sold for p in company.products)
         st.write(f"- 在庫合計: {total_stock}")
@@ -93,6 +96,9 @@ def snapshot_company(company) -> Dict[str, Any]:
         "budget": company.budget,
         "stock_price": company.stock_price,
         "tech_debt": company.tech_debt,
+        "team_size": int(getattr(company, "team_size", 3)),
+        "rnd_level": float(getattr(company, "rnd_level", 0.0)),
+        "loan_balance": float(getattr(company, "loan_balance", 0.0)),
         "products": [
             {
                 "name": p.name,
@@ -118,6 +124,18 @@ def build_change_explanations(before: Dict[str, Any], after: Dict[str, Any]) -> 
     if abs(tech_delta) >= 0.1:
         direction = "増えた" if tech_delta > 0 else "減った"
         lines.append(f"技術負債が {abs(tech_delta):.1f} pt {direction}。")
+
+    team_delta = after["team_size"] - before["team_size"]
+    if team_delta != 0:
+        lines.append(f"チーム人数が {team_delta:+d} 名 変わりました。")
+
+    rnd_delta = after["rnd_level"] - before["rnd_level"]
+    if abs(rnd_delta) >= 0.01:
+        lines.append(f"研究レベルが {rnd_delta:+.2f} 変わりました。")
+
+    loan_delta = after["loan_balance"] - before["loan_balance"]
+    if abs(loan_delta) >= 1:
+        lines.append(f"借入残高が {loan_delta:+,.0f} 円 変わりました。")
 
     before_map = {p["name"]: p for p in before["products"]}
     after_map = {p["name"]: p for p in after["products"]}
@@ -260,7 +278,13 @@ with right_col:
 
 **この画面で使える主なコード**
 - `company.develop_product(name, cost, price, stock)` で新商品を開発
+- `company.launch_products_from_catalog(limit=3)` で商品をまとめて投入
 - `company.restock(name, count)` で在庫を補充
+- `company.hire_team(count, salary_per_member=None)` で採用
+- `company.run_marketing_campaign(budget)` で需要強化
+- `company.invest_rnd(budget)` で研究投資
+- `company.take_loan(amount)` / `company.repay_loan(amount)` で資金調達
+- `import json` など標準ライブラリのインポートも利用可能
 - `company.products` で商品一覧を取得
 - `for p in company.products:` で商品を順番に処理
 - `p.name` / `p.cost` / `p.price` / `p.stock` / `p.total_sold` / `p.brand_power` を参照
@@ -277,8 +301,8 @@ with right_col:
         },
         {
             "title": "2. 商品を追加してみる",
-            "body": "商品名・原価・販売価格・初期在庫の4つを指定して開発します。",
-            "code": 'company.develop_product("パン", 120, 360, 30)',
+            "body": "カタログから複数商品を一括投入して、一気にゲームを動かせます。",
+            "code": "company.launch_products_from_catalog(limit=4)",
         },
         {
             "title": "3. 在庫補充を覚える",
@@ -301,19 +325,19 @@ with right_col:
             "code": 'def restock_if_low(product, threshold=10, amount=20):\n    if product.stock < threshold:\n        company.restock(product.name, amount)\n\nfor p in company.products:\n    restock_if_low(p)',
         },
         {
-            "title": "7. 状態をprintで確認する",
-            "body": "想定通り動いたか、必ずログで確認しましょう。",
-            "code": 'print("products:", len(company.products))\nfor p in company.products:\n    print(p.name, p.stock, p.total_sold)',
+            "title": "7. 採用とマーケを試す",
+            "body": "売るだけでなく、採用とマーケで成長速度を上げられます。",
+            "code": "company.hire_team(2)\ncompany.run_marketing_campaign(20000)",
         },
         {
-            "title": "8. 小さく改善していく",
-            "body": "一気に長いコードを書くより、1機能ずつ追加した方が失敗しにくいです。",
-            "code": '# まずは在庫補充だけ\nfor p in company.products:\n    if p.stock < 5:\n        company.restock(p.name, 10)',
+            "title": "8. 研究開発で体質を改善する",
+            "body": "R&D投資は中長期で原価改善とブランド強化に効きます。",
+            "code": "company.invest_rnd(30000)\nprint(status)",
         },
         {
-            "title": "9. 自分ルールを作る",
-            "body": "価格や在庫条件を自分で決めて、戦略コードに育てていきます。",
-            "code": 'for p in company.products:\n    if p.brand_power > 1.2 and p.stock < 15:\n        company.restock(p.name, 15)',
+            "title": "9. 資金調達も戦略に入れる",
+            "body": "不足時は借入、余裕時は返済のルール化で経営が安定します。",
+            "code": 'if status["資金"] < 50000:\n    company.take_loan(80000)\nelse:\n    company.repay_loan(20000)',
         },
     ]
 
