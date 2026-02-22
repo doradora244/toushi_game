@@ -671,90 +671,76 @@ with right_col:
         for hint in mission["hints"]:
             st.markdown(hint)
 
-    with st.expander("はじめての人向け：コードの意味", expanded=False):
+    with st.expander("初心者向け: 1-6ステップの意味", expanded=True):
         st.markdown(
             """
-**1) 製品を作る**
-```python
-company.develop_product("コーヒー", 300, 900, 20)
-```
-- 300: 1個作る原価
-- 900: 1個売る価格
-- 20: 最初の在庫数
+1. **商品ラインを作る**  
+`launch_products_from_catalog(...)` は「売れる土台」を一気に作るコードです。
+2. **在庫運用を自動化する**  
+`for` で全商品を見て、`if` で不足時だけ `restock(...)` します。
+3. **組織と需要を伸ばす**  
+`hire_team(...)` は実行力、`run_marketing_campaign(...)` は短期需要に効きます。
+4. **生産性へ投資する**  
+`invest_rnd(...)` / `invest_automation(...)` / `expand_capacity(...)` で中長期改善。
+5. **事業を拡張する**  
+`open_sales_channel(...)` と `launch_subscription_plan(...)` で収益源を増やします。
+6. **財務で判断する**  
+`get_balance_sheet()` / `get_pl_statement()` を見て、借入・返済を判断します。
+            """
+        )
+        st.code(
+            'for p in company.products:\n'
+            '    if p.stock < 10:\n'
+            '        company.restock(p.name, 20)\n'
+            '\n'
+            'bs = company.get_balance_sheet()\n'
+            'pl = company.get_pl_statement()\n'
+            'print(pl["operating_profit"], bs["equity"]["total_equity"])',
+            language="python",
+        )
 
-**2) 在庫を補充する**
-```python
-company.restock("コーヒー", 10)
-```
-
-**3) すべての製品を順番に見る**
-```python
-for p in company.products:
-    print(p.name, p.stock)
-```
+    with st.expander("初心者向け: コードの読み方", expanded=False):
+        st.markdown(
+            """
+- `for p in company.products:`: 商品を1つずつ順番に処理する
+- `if p.stock < 10:`: 在庫が10未満のときだけ実行する
+- `def ...`: 処理を名前付きでまとめて再利用する
+- `status`: 会社の要約（資金・製品数など）を確認できる
+- `print(...)`: 実行結果をログに出して動作確認する
             """
         )
 
-    with st.expander("書き方テンプレ", expanded=True):
+    with st.expander("上級者向け: 使える経営コード一覧", expanded=False):
         st.markdown(
             """
-**1) 最初はこの1行だけ**
+**商品・価格**
+- `company.develop_product(name, cost, price, stock)`
+- `company.set_product_price(name, new_price)`
+- `company.restock(name, count)`
+
+**組織・投資**
+- `company.hire_team(count, salary_per_member=None)`
+- `company.invest_rnd(budget)`
+- `company.invest_automation(budget)`
+- `company.expand_capacity(units)`
+
+**成長施策**
+- `company.run_marketing_campaign(budget)`
+- `company.open_sales_channel(name, setup_cost=..., demand_bonus=..., running_cost=...)`
+- `company.launch_subscription_plan(name, monthly_fee, subscribers, churn_rate=0.03)`
+
+**財務**
+- `company.take_loan(amount)` / `company.repay_loan(amount)`
+- `company.get_pl_statement()`
+- `company.get_balance_sheet()`
             """
         )
-        if mission.get("sample_code"):
-            st.code(mission["sample_code"], language="python")
-        else:
-            st.code('company.develop_product("コーヒー", 300, 900, 20)', language="python")
-
-        st.markdown(
-            """
-**2) if を使うテンプレ**
-```python
-for p in company.products:
-    if p.stock < 10:
-        company.restock(p.name, 20)
-```
-
-**3) 関数にまとめるテンプレ**
-```python
-def restock_if_low(product, threshold=10, amount=20):
-    if product.stock < threshold:
-        company.restock(product.name, amount)
-
-for p in company.products:
-    restock_if_low(p)
-```
-            """
-        )
-
-    with st.expander("上級経営テンプレ", expanded=False):
-        st.markdown(
-            """
-**1) 価格改定 + キャパ投資**
-```python
-company.set_product_price("コーヒー", 980)
-company.expand_capacity(20)
-```
-
-**2) 自動化 + 販路開拓**
-```python
-company.invest_automation(30000)
-company.open_sales_channel("ECモール", setup_cost=15000, demand_bonus=0.12)
-```
-
-**3) サブスクで継続収益**
-```python
-company.launch_subscription_plan("プレミアム会員", 500, 120)
-```
-
-**4) 財務を見て意思決定**
-```python
-bs = company.get_balance_sheet()
-pl = company.get_pl_statement()
-print(bs)
-print(pl)
-```
-            """
+        st.code(
+            'company.set_product_price("コーヒー", 980)\n'
+            'company.open_sales_channel("ECモール", setup_cost=15000, demand_bonus=0.12)\n'
+            'company.launch_subscription_plan("プレミアム会員", 500, 120)\n'
+            'print(company.get_pl_statement())',
+            language="python",
         )
 
     st.write("**コード入力（空欄のまま書いてOK）**")
