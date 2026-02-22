@@ -259,18 +259,27 @@ def show_financial_dashboard(history):
 def show_financial_statements(company):
     pl = company.get_pl_statement()
     bs = company.get_balance_sheet()
+    sub_revenue = pl.get("subscription_revenue", 0)
+    cogs = pl.get("cogs", 0)
+    gross_profit = pl.get("gross_profit", pl.get("revenue", 0) - cogs)
+    fixed_cost = pl.get("fixed_cost", 0)
+    interest_cost = pl.get("interest_cost", 0)
+    channel_cost = pl.get("channel_cost", 0)
+    operating_profit = pl.get("operating_profit", pl.get("profit", 0))
+    sga_cost = max(0, fixed_cost - interest_cost)
+    ordinary_profit = (gross_profit - sga_cost) - interest_cost
 
     pl_df = pd.DataFrame(
         [
             {"項目": "売上", "金額": int(pl["revenue"])},
-            {"項目": "サブスク売上", "金額": int(pl["subscription_revenue"])},
-            {"項目": "売上原価", "金額": int(pl["cogs"])},
-            {"項目": "粗利益", "金額": int(pl["gross_profit"])},
-            {"項目": "固定費(合計)", "金額": int(pl["fixed_cost"])},
-            {"項目": "人件費", "金額": int(pl["payroll_cost"])},
-            {"項目": "販路維持費", "金額": int(pl["channel_cost"])},
-            {"項目": "支払利息", "金額": int(pl["interest_cost"])},
-            {"項目": "営業利益", "金額": int(pl["operating_profit"])},
+            {"項目": "サブスク売上", "金額": int(sub_revenue)},
+            {"項目": "売上原価", "金額": int(cogs)},
+            {"項目": "粗利益", "金額": int(gross_profit)},
+            {"項目": "固定費(合計)", "金額": int(fixed_cost)},
+            {"項目": "人件費", "金額": int(pl.get("payroll_cost", 0))},
+            {"項目": "販路維持費", "金額": int(channel_cost)},
+            {"項目": "支払利息", "金額": int(interest_cost)},
+            {"項目": "営業利益", "金額": int(operating_profit)},
         ]
     )
 
@@ -300,11 +309,11 @@ def show_financial_statements(company):
             "#2e7d32",
             [
                 ("売上", _yen(pl["revenue"])),
-                ("サブスク売上", _yen(pl["subscription_revenue"])),
-                ("売上原価", _yen(pl["cogs"])),
-                ("売上総利益", _yen(pl["gross_profit"])),
-                ("販管費", _yen(max(0, pl["fixed_cost"] - pl["interest_cost"]))),
-                ("営業利益", _yen(pl["gross_profit"] - max(0, pl["fixed_cost"] - pl["interest_cost"]))),
+                ("サブスク売上", _yen(sub_revenue)),
+                ("売上原価", _yen(cogs)),
+                ("売上総利益", _yen(gross_profit)),
+                ("販管費", _yen(sga_cost)),
+                ("営業利益", _yen(gross_profit - sga_cost)),
             ],
         )
     with pl_b:
@@ -312,10 +321,10 @@ def show_financial_statements(company):
             "PL: 営業外/最終",
             "#1565c0",
             [
-                ("販路維持費", _yen(pl["channel_cost"])),
-                ("営業外費用(利息)", _yen(pl["interest_cost"])),
-                ("経常利益(簡易)", _yen((pl["gross_profit"] - max(0, pl["fixed_cost"] - pl["interest_cost"])) - pl["interest_cost"])),
-                ("当期純利益(簡易)", _yen(pl["operating_profit"])),
+                ("販路維持費", _yen(channel_cost)),
+                ("営業外費用(利息)", _yen(interest_cost)),
+                ("経常利益(簡易)", _yen(ordinary_profit)),
+                ("当期純利益(簡易)", _yen(operating_profit)),
             ],
         )
     st.write("**BS（貸借対照表: 現在）**")
